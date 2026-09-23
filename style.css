@@ -771,3 +771,18 @@ th {
     .form-grid { grid-template-columns: 1fr; }
     .search-box { min-width: 100%; }
 }
+/* Dimensionamento do Logótipo Oficial RICPOWER */
+.login-logo-img {
+    max-width: 220px;
+    height: auto;
+    display: block;
+    margin: 0 auto 15px auto;
+}
+
+.sidebar-logo-img {
+    max-height: 42px;
+    width: auto;
+    object-fit: contain;
+    display: block;
+    margin: 0 auto;
+}
