@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RICPOWER - Dashboard Financeiro & Estoque</title>
+    
+    <!-- Bibliotecas Externas (Chart.js e FontAwesome) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- Folha de Estilo Externa -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <!-- 1. TELA DE LOGIN FIXO -->
+    <div id="loginScreen" class="login-container">
+        <div class="login-card">
+            <div class="login-logo">
+                <i class="fas fa-bolt"></i> RICPOWER
+            </div>
+            <h2>Acesso ao Sistema</h2>
+            <p class="login-subtitle">Gestão Financeira e Controle de Estoque</p>
+            
+            <div id="loginAlert" class="login-alert" style="display: none;"></div>
+            
+            <form id="loginForm" onsubmit="realizarLogin(event)">
+                <div class="form-group">
+                    <label class="form-label" for="loginEmail">E-mail</label>
+                    <input type="email" id="loginEmail" class="form-control" placeholder="Seu e-mail de acesso" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="loginSenha">Senha</label>
+                    <input type="password" id="loginSenha" class="form-control" placeholder="Sua senha" required>
+                </div>
+                
+                <button type="button" class="btn btn-secondary btn-full mb-10" onclick="preencherLoginDemo()">
+                    <i class="fas fa-key"></i> Preencher Acesso Demo
+                </button>
+                <button type="submit" class="btn btn-primary btn-full">
+                    <i class="fas fa-sign-in-alt"></i> Entrar
+                </button>
+            </form>
+            
+            <div class="login-footer">
+                <small>Credenciais fixas: <b>admin@richard.com</b> / <b>admin123</b></small>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. APLICAÇÃO PRINCIPAL (SISTEMA DE PAINEL) -->
+    <div id="appScreen" class="app-container" style="display: none;">
+        
+        <!-- SIDEBAR BARRA LATERAL -->
+        <aside class="sidebar">
+            <div class="logo">
+                <i class="fas fa-bolt"></i> RICPOWER
+            </div>
+            
+            <nav class="sidebar-nav">
+                <a href="#" class="nav-link active" onclick="showTab('dashboard', this)">
+                    <i class="fas fa-chart-line"></i> Dashboard
+                </a>
+                <a href="#" class="nav-link" onclick="showTab('pagar', this)">
+                    <i class="fas fa-arrow-down text-danger"></i> Contas a Pagar
+                </a>
+                <a href="#" class="nav-link" onclick="showTab('receber', this)">
+                    <i class="fas fa-arrow-up text-success"></i> Contas a Receber
+                </a>
+                <a href="#" class="nav-link" onclick="showTab('estoque', this)">
+                    <i class="fas fa-box"></i> Estoque (Peças)
+                </a>
+                <a href="#" class="nav-link" onclick="showTab('dre', this)">
+                    <i class="fas fa-file-invoice-dollar"></i> Análises DRE
+                </a>
+                <a href="#" class="nav-link" onclick="showTab('extensao', this)">
+                    <i class="fab fa-chrome"></i> Extensão Chrome
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="user-status">
+                    <i class="fas fa-user-circle"></i>
+                    <span id="userEmailDisplay">admin@richard.com</span>
+                </div>
+                <button class="btn-logout" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i> Sair
+                </button>
+            </div>
+        </aside>
+
+        <!-- CONTEÚDO PRINCIPAL -->
+        <main class="main-content">
+            
+            <!-- HEADER SUPERIOR COM FILTRO DE PERÍODO -->
+            <header class="header">
+                <div>
+                    <h1 id="pageTitle">Visão Geral Financeira</h1>
+                    <p class="subtitle" id="pageSubTitle">Resumo das atividades e fluxo de caixa</p>
+                </div>
+
+                <!-- Filtro Avançado de Período -->
+                <div class="modern-filter-container">
+                    <button class="modern-filter-btn" onclick="toggleDateFilter()" id="btnPeriodo">
+                        <i class="far fa-calendar-alt"></i>
+                        <span id="currentPeriodText">Setembro 2026</span>
+                        <i class="fas fa-chevron-down text-small ml-5"></i>
+                    </button>
+                    
+                    <div class="modern-filter-dropdown" id="dateFilterDropdown">
+                        <div class="filter-option active-filter" id="opt-mes-atual" onclick="selectPredefinedPeriod(this, 'Este Mês')">Este Mês</div>
+                        <div class="filter-option" onclick="selectPredefinedPeriod(this, 'Mês Passado')">Mês Passado</div>
+                        <div class="filter-option" onclick="selectPredefinedPeriod(this, 'Últimos 3 Meses')">Últimos 3 Meses</div>
+                        <div class="filter-option" onclick="selectPredefinedPeriod(this, 'Este Ano')">Este Ano</div>
+                        <div class="filter-option" onclick="selectPredefinedPeriod(this, 'Todos os Registros')">Todos os Registros</div>
+                        
+                        <div class="filter-custom-date">
+                            <h4>Período Personalizado</h4>
+                            <div class="date-range-inputs">
+                                <div class="date-input-group">
+                                    <label for="dataInicioFiltro">De:</label>
+                                    <input type="date" id="dataInicioFiltro">
+                                </div>
+                                <div class="date-input-group">
+                                    <label for="dataFimFiltro">Até:</label>
+                                    <input type="date" id="dataFimFiltro">
+                                </div>
+                            </div>
+                            <div class="filter-actions">
+                                <button class="btn-filter btn-clear" onclick="limparFiltro()"><i class="fas fa-eraser"></i> Limpar</button>
+                                <button class="btn-filter btn-apply" onclick="aplicarFiltroPersonalizado()"><i class="fas fa-check"></i> Aplicar</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- TAB 1: DASHBOARD -->
+            <section id="tab-dashboard" class="tab-content active">
+                <div class="cards-grid">
+                    <div class="card income">
+                        <div class="card-info">
+                            <h3 id="cardReceberLabel">A Receber (Setembro 2026)</h3>
+                            <h2 id="dashTotalReceber">R$ 0,00</h2>
+                        </div>
+                        <div class="card-icon"><i class="fas fa-wallet"></i></div>
+                    </div>
+                    <div class="card expense">
+                        <div class="card-info">
+                            <h3 id="cardPagarLabel">A Pagar (Setembro 2026)</h3>
+                            <h2 id="dashTotalPagar">R$ 0,00</h2>
+                        </div>
+                        <div class="card-icon"><i class="fas fa-file-invoice-dollar"></i></div>
+                    </div>
+                    <div class="card balance">
+                        <div class="card-info">
+                            <h3>Saldo Previsto</h3>
+                            <h2 id="dashSaldoPrevisto">R$ 0,00</h2>
+                        </div>
+                        <div class="card-icon"><i class="fas fa-piggy-bank"></i></div>
+                    </div>
+                    <div class="card stock">
+                        <div class="card-info">
+                            <h3>Patrimônio em Estoque</h3>
+                            <h2 id="dashValorEstoque">R$ 0,00</h2>
+                        </div>
+                        <div class="card-icon"><i class="fas fa-boxes"></i></div>
+                    </div>
+                </div>
+
+                <!-- Gráficos -->
+                <div class="dashboard-grid">
+                    <div class="panel">
+                        <div class="panel-header">
+                            <h3 class="panel-title">Fluxo de Caixa (Entradas x Saídas)</h3>
+                        </div>
+                        <canvas id="fluxoCaixaChart" height="120"></canvas>
+                    </div>
+                    <div class="panel">
+                        <div class="panel-header">
+                            <h3 class="panel-title">Despesas por Categoria</h3>
+                        </div>
+                        <canvas id="centroCustoChart" height="200"></canvas>
+                    </div>
+                </div>
+
+                <!-- Resumo Dinâmico e Alertas de Estoque -->
+                <div class="dashboard-grid">
+                    <div class="panel">
+                        <div class="panel-header">
+                            <h3 class="panel-title">Próximos Vencimentos</h3>
+                            <button class="btn btn-success btn-sm" onclick="abrirModalEntrada()"><i class="fas fa-plus"></i> Entrada</button>
+                            <button class="btn btn-danger btn-sm" onclick="abrirModalSaida()"><i class="fas fa-plus"></i> Saída</button>
+                        </div>
+                        <div class="table-responsive">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Vencimento</th>
+                                        <th>Tipo</th>
+                                        <th>Pessoa / Empresa</th>
+                                        <th>Valor</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tableProximosVencimentos">
+                                    <!-- Preenchido via JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="panel">
+                        <div class="panel-header">
+                            <h3 class="panel-title">Alertas de Reposição</h3>
+                            <button class="btn btn-secondary btn-sm" onclick="showTab('estoque')"><i class="fas fa-boxes"></i> Ver Estoque</button>
+                        </div>
+                        <div id="painelAlertasEstoque" class="alerts-container">
+                            <!-- Preenchido via JavaScript -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 2: CONTAS A PAGAR -->
+            <section id="tab-pagar" class="tab-content">
+                <div class="panel">
+                    <div class="panel-header">
+                        <div class="search-box">
+                            <i class="fas fa-search"></i>
+                            <input type="text" id="searchPagar" class="form-control" placeholder="Buscar fornecedor ou descrição..." onkeyup="renderizarContasPagar()">
+                        </div>
+                        <div class="panel-actions">
+                            <select id="filterStatusPagar" class="filter-select" onchange="renderizarContasPagar()">
+                                <option value="todos">Todos os Status</option>
+                                <option value="PENDENTE">Apenas Pendentes</option>
+                                <option value="ATRASADO">Apenas Atrasados</option>
+                                <option value="PAGO">Apenas Pagos</option>
+                            </select>
+                            <button class="btn btn-danger" onclick="abrirModalSaida()"><i class="fas fa-plus"></i> Nova Conta a Pagar</button>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Vencimento</th>
+                                    <th>Fornecedor</th>
+                                    <th>Descrição</th>
+                                    <th>Valor</th>
+                                    <th>Categoria</th>
+                                    <th>Status</th>
+                                    <th>Data Efetiva</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tableContasPagar">
+                                <!-- Preenchido via JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 3: CONTAS A RECEBER -->
+            <section id="tab-receber" class="tab-content">
+                <div class="panel">
+                    <div class="panel-header">
+                        <div class="search-box">
+                            <i class="fas fa-search"></i>
+                            <input type="text" id="searchReceber" class="form-control" placeholder="Buscar cliente ou descrição..." onkeyup="renderizarContasReceber()">
+                        </div>
+                        <div class="panel-actions">
+                            <select id="filterStatusReceber" class="filter-select" onchange="renderizarContasReceber()">
+                                <option value="todos">Todos os Status</option>
+                                <option value="PENDENTE">Apenas Pendentes</option>
+                                <option value="ATRASADO">Apenas Atrasados</option>
+                                <option value="PAGO">Apenas Pagos</option>
+                            </select>
+                            <button class="btn btn-success" onclick="abrirModalEntrada()"><i class="fas fa-plus"></i> Nova Conta a Receber</button>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Vencimento</th>
+                                    <th>Cliente</th>
+                                    <th>Descrição</th>
+                                    <th>Valor</th>
+                                    <th>Categoria</th>
+                                    <th>Status</th>
+                                    <th>Data Efetiva</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tableContasReceber">
+                                <!-- Preenchido via JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 4: CONTROLE DE ESTOQUE (PEÇAS) -->
+            <section id="tab-estoque" class="tab-content">
+                <div class="cards-grid mb-20">
+                    <div class="card balance">
+                        <div class="card-info">
+                            <h3>Patrimônio Investido</h3>
+                            <h2 id="stkPatrimonioTotal">R$ 0,00</h2>
+                        </div>
+                        <div class="card-icon"><i class="fas fa-dollar-sign"></i></div>
+                    </div>
+                    <div class="card income">
+                        <div class="card-info">
+                            <h3>SKUs Cadastrados</h3>
+                            <h2 id="stkTotalSkus">0</h2>
+                        </div>
+                        <div class="card-icon"><i class="fas fa-barcode"></i></div>
+                    </div>
+                    <div class="card expense">
+                        <div class="card-info">
+                            <h3>Estoque Baixo / Crítico</h3>
+                            <h2 id="stkTotalAlertas">0</h2>
+                        </div>
+                        <div class="card-icon"><i class="fas fa-exclamation-triangle"></i></div>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <div class="panel-header">
+                        <div class="search-box">
+                            <i class="fas fa-search"></i>
+                            <input type="text" id="searchEstoque" class="form-control" placeholder="Buscar por SKU ou Nome do Produto..." onkeyup="renderizarEstoque()">
+                        </div>
+                        <div class="panel-actions">
+                            <select id="filterAlertaEstoque" class="filter-select" onchange="renderizarEstoque()">
+                                <option value="todos">Todos os Itens</option>
+                                <option value="alerta">Apenas Estoque Baixo</option>
+                                <option value="zerado">Apenas Esgotados</option>
+                            </select>
+                            <button class="btn btn-primary" onclick="abrirModalProduto()"><i class="fas fa-plus"></i> Novo Produto</button>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>SKU</th>
+                                    <th>Produto</th>
+                                    <th>Categoria</th>
+                                    <th>Qtd Atual</th>
+                                    <th>Qtd Mín.</th>
+                                    <th>Preço Custo</th>
+                                    <th>Preço Venda</th>
+                                    <th>Margem</th>
+                                    <th>Total Investido</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tableEstoque">
+                                <!-- Preenchido via JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 5: DEMONSTRATIVO DE RESULTADO (DRE) -->
+            <section id="tab-dre" class="tab-content">
+                <div class="panel">
+                    <div class="panel-header">
+                        <h3 class="panel-title"><i class="fas fa-calculator"></i> Demonstrativo do Resultado do Exercício (DRE)</h3>
+                        <span class="badge badge-accent" id="drePeriodoText">Setembro 2026</span>
+                    </div>
+                    <div class="dre-container">
+                        <div class="dre-row highlight-green">
+                            <span>(+) Receita Bruta (Entradas Efetuadas/Previstas)</span>
+                            <strong id="dreReceitaBruta">R$ 0,00</strong>
+                        </div>
+                        <div class="dre-row text-sub">
+                            <span>(-) Custos de Peças e Peças Vendidas (CMV)</span>
+                            <span id="dreCMV" class="text-danger">R$ 0,00</span>
+                        </div>
+                        <div class="dre-row highlight-bold">
+                            <span>(=) LUCRO BRUTO OPERACIONAL</span>
+                            <strong id="dreLucroBruto">R$ 0,00</strong>
+                        </div>
+                        <div class="dre-row text-sub">
+                            <span>(-) Despesas Operacionais / Custos Fixos</span>
+                            <span id="dreDespesasOp" class="text-danger">R$ 0,00</span>
+                        </div>
+                        <div class="dre-row highlight-accent">
+                            <span>(=) RESULTADO LÍQUIDO DO PERÍODO</span>
+                            <strong id="dreResultadoLiquido" class="text-large">R$ 0,00</strong>
+                        </div>
+                        <div class="dre-footer">
+                            <span>Margem Líquida do Negócio: <strong id="dreMargemLiquida">0%</strong></span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 6: EXTENSÃO CHROME & BACKUP -->
+            <section id="tab-extensao" class="tab-content">
+                <div class="dashboard-grid">
+                    <div class="panel">
+                        <div class="panel-header">
+                            <h3 class="panel-title"><i class="fab fa-chrome"></i> Extensão do Chrome (Injetor Rápido)</h3>
+                        </div>
+                        <p class="mb-15">Simule ou instale o atalho rápido do navegador para realizar lançamentos de qualquer aba:</p>
+                        
+                        <div class="chrome-popup-simulator">
+                            <div class="popup-header">
+                                <i class="fas fa-bolt"></i> RICPOWER Quick Add
+                            </div>
+                            <form onsubmit="event.preventDefault(); lancamentoRapidoExtensao();">
+                                <div class="form-group mb-10">
+                                    <label class="form-label">Tipo</label>
+                                    <select id="extTipo" class="form-control">
+                                        <option value="RECEBER">Conta a Receber (Entrada)</option>
+                                        <option value="PAGAR">Conta a Pagar (Saída)</option>
+                                    </select>
+                                </div>
+                                <div class="form-group mb-10">
+                                    <label class="form-label">Pessoa / Empresa</label>
+                                    <input type="text" id="extPessoa" class="form-control" placeholder="Cliente ou Fornecedor" required>
+                                </div>
+                                <div class="form-group mb-10">
+                                    <label class="form-label">Descrição</label>
+                                    <input type="text" id="extDescricao" class="form-control" placeholder="Ex: Conserto de Placa" required>
+                                </div>
+                                <div class="form-group mb-10">
+                                    <label class="form-label">Valor (R$)</label>
+                                    <input type="number" step="0.01" id="extValor" class="form-control" placeholder="0,00" required>
+                                </div>
+                                <button type="submit" class="btn btn-primary btn-full mt-10">
+                                    <i class="fas fa-bolt"></i> Lançar via Extensão
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <div class="panel">
+                        <div class="panel-header">
+                            <h3 class="panel-title"><i class="fas fa-database"></i> Backup & Exportação de Dados</h3>
+                        </div>
+                        <p class="mb-20">Faça o download do seu banco de dados completo ou importe relatórios em CSV:</p>
+                        
+                        <div class="backup-actions">
+                            <button class="btn btn-secondary btn-full mb-10" onclick="exportarBackupJSON()">
+                                <i class="fas fa-download"></i> Exportar Dados Completos (JSON)
+                            </button>
+                            <button class="btn btn-secondary btn-full mb-10" onclick="exportarCSV('pagar')">
+                                <i class="fas fa-file-csv"></i> Exportar Contas a Pagar (CSV)
+                            </button>
+                            <button class="btn btn-secondary btn-full mb-20" onclick="exportarCSV('receber')">
+                                <i class="fas fa-file-csv"></i> Exportar Contas a Receber (CSV)
+                            </button>
+                            
+                            <hr class="mb-20">
+                            
+                            <label class="form-label mb-5">Restaurar do Arquivo (JSON)</label>
+                            <input type="file" id="importFile" accept=".json" class="form-control mb-10" onchange="importarBackupJSON(event)">
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- 3. MODAIS DE CADASTRO E EDIÇÃO -->
+    
+    <!-- Modal Conta a Receber (Entrada) -->
+    <div id="modalEntrada" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="fecharModal('modalEntrada')">&times;</span>
+            <h2 class="modal-title" id="titleModalEntrada"><i class="fas fa-arrow-up text-success"></i> Nova Conta a Receber</h2>
+            <form id="formEntrada" onsubmit="salvarContaReceber(event)">
+                <input type="hidden" id="entId">
+                <div class="form-grid">
+                    <div class="form-group full-width">
+                        <label class="form-label" for="entCliente">Cliente</label>
+                        <input type="text" id="entCliente" class="form-control" placeholder="Nome do Cliente" required>
+                    </div>
+                    <div class="form-group full-width">
+                        <label class="form-label" for="entDescricao">Descrição</label>
+                        <input type="text" id="entDescricao" class="form-control" placeholder="Ex: Conserto de placa de vídeo" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="entValor">Valor (R$)</label>
+                        <input type="number" step="0.01" id="entValor" class="form-control" placeholder="0,00" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="entVencimento">Data de Vencimento</label>
+                        <input type="date" id="entVencimento" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="entCategoria">Categoria / Serviço</label>
+                        <select id="entCategoria" class="form-control">
+                            <option value="Reparos">Reparos</option>
+                            <option value="Peças Novas">Peças Novas</option>
+                            <option value="Manutenção">Manutenção</option>
+                            <option value="Vendas">Vendas Directas</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="entStatus">Status</label>
+                        <select id="entStatus" class="form-control">
+                            <option value="PENDENTE">Pendente</option>
+                            <option value="PAGO">Pago</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="entDataPagamento">Data de Recebimento</label>
+                        <input type="date" id="entDataPagamento" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="entTipoPagamento">Tipo de Pagamento</label>
+                        <select id="entTipoPagamento" class="form-control">
+                            <option value="PIX">PIX</option>
+                            <option value="Dinheiro">Dinheiro</option>
+                            <option value="Cartão">Cartão de Crédito/Débito</option>
+                            <option value="Transferência">Transferência</option>
+                        </select>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary btn-full mt-20"><i class="fas fa-save"></i> Guardar Entrada</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Conta a Pagar (Saída) -->
+    <div id="modalSaida" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="fecharModal('modalSaida')">&times;</span>
+            <h2 class="modal-title" id="titleModalSaida"><i class="fas fa-arrow-down text-danger"></i> Nova Conta a Pagar</h2>
+            <form id="formSaida" onsubmit="salvarContaPagar(event)">
+                <input type="hidden" id="pagId">
+                <div class="form-grid">
+                    <div class="form-group full-width">
+                        <label class="form-label" for="pagFornecedor">Fornecedor</label>
+                        <input type="text" id="pagFornecedor" class="form-control" placeholder="Ex: AliExpress, RGE, Imobiliária" required>
+                    </div>
+                    <div class="form-group full-width">
+                        <label class="form-label" for="pagDescricao">Descrição</label>
+                        <input type="text" id="pagDescricao" class="form-control" placeholder="Ex: Lote de chips, Aluguel" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="pagValor">Valor (R$)</label>
+                        <input type="number" step="0.01" id="pagValor" class="form-control" placeholder="0,00" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="pagVencimento">Data de Vencimento</label>
+                        <input type="date" id="pagVencimento" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="pagCategoria">Centro de Custo / Categoria</label>
+                        <select id="pagCategoria" class="form-control">
+                            <option value="Custos Fixos">Custos Fixos (Aluguel, Luz)</option>
+                            <option value="Peças Novas">Peças Novas (CMV)</option>
+                            <option value="Administrativo">Administrativo</option>
+                            <option value="Pessoal">Pessoal / Pro-labore</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="pagStatus">Status</label>
+                        <select id="pagStatus" class="form-control">
+                            <option value="PENDENTE">Pendente</option>
+                            <option value="PAGO">Pago</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="pagDataPagamento">Data de Pagamento</label>
+                        <input type="date" id="pagDataPagamento" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="pagTipoPagamento">Tipo de Pagamento</label>
+                        <select id="pagTipoPagamento" class="form-control">
+                            <option value="PIX">PIX</option>
+                            <option value="Boleto">Boleto</option>
+                            <option value="Cartão">Cartão de Crédito</option>
+                            <option value="Transferência">Transferência</option>
+                        </select>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary btn-full mt-20"><i class="fas fa-save"></i> Guardar Saída</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Produto no Estoque -->
+    <div id="modalProduto" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="fecharModal('modalProduto')">&times;</span>
+            <h2 class="modal-title" id="titleModalProduto"><i class="fas fa-box text-accent"></i> Cadastrar Produto</h2>
+            <form id="formProduto" onsubmit="salvarProduto(event)">
+                <input type="hidden" id="prodId">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label class="form-label" for="prodSku">Código SKU</label>
+                        <input type="text" id="prodSku" class="form-control" placeholder="Ex: PEC-001" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="prodCategoria">Categoria</label>
+                        <input type="text" id="prodCategoria" class="form-control" placeholder="Ex: Placas de Vídeo, Memorias" required>
+                    </div>
+                    <div class="form-group full-width">
+                        <label class="form-label" for="prodNome">Nome do Produto / Componente</label>
+                        <input type="text" id="prodNome" class="form-control" placeholder="Ex: Chip VRM Mosfet" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="prodQtd">Quantidade Atual</label>
+                        <input type="number" id="prodQtd" class="form-control" min="0" value="1" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="prodQtdMin">Quantidade Mínima</label>
+                        <input type="number" id="prodQtdMin" class="form-control" min="0" value="5" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="prodPrecoCusto">Preço de Custo (R$)</label>
+                        <input type="number" step="0.01" id="prodPrecoCusto" class="form-control" placeholder="0,00" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="prodPrecoVenda">Preço de Venda (R$)</label>
+                        <input type="number" step="0.01" id="prodPrecoVenda" class="form-control" placeholder="0,00" required>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary btn-full mt-20"><i class="fas fa-save"></i> Guardar Produto</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Movimentação de Estoque -->
+    <div id="modalMovimentacao" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="fecharModal('modalMovimentacao')">&times;</span>
+            <h2 class="modal-title"><i class="fas fa-exchange-alt text-accent"></i> Movimentar Estoque</h2>
+            <form id="formMovimentacao" onsubmit="salvarMovimentacaoEstoque(event)">
+                <input type="hidden" id="movProdId">
+                <p id="movItemInfo" class="mb-15 font-bold"></p>
+                <div class="form-group mb-15">
+                    <label class="form-label" for="movTipo">Tipo de Movimentação</label>
+                    <select id="movTipo" class="form-control">
+                        <option value="ENTRADA">Entrada (+Adicionar)</option>
+                        <option value="SAIDA">Saída (-Remover/Venda)</option>
+                    </select>
+                </div>
+                <div class="form-group mb-15">
+                    <label class="form-label" for="movQtd">Quantidade</label>
+                    <input type="number" id="movQtd" class="form-control" min="1" value="1" required>
+                </div>
+                <button type="submit" class="btn btn-primary btn-full"><i class="fas fa-check"></i> Confirmar Movimentação</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- LÓGICA JAVASCRIPT EXTERNA -->
+    <script src="script.js"></script>
+</body>
+</html>
