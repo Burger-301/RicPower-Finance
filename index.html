@@ -421,7 +421,7 @@
         <!-- CONTEÚDO PRINCIPAL -->
         <div class="main-content">
             
-            <!-- HEADER DA PÁGINA (CORRIGIDO E ORGANIZADO) -->
+            <!-- HEADER DA PÁGINA (ÚNICO E ORGANIZADO) -->
             <div class="header">
                 <h1 id="pageTitle">Visão Geral Financeira</h1>
                 
@@ -462,41 +462,6 @@
                                     <button type="button" class="btn-filter btn-clear" onclick="limparFiltro()"><i class="fas fa-eraser"></i> Limpar</button>
                                     <button type="button" class="btn-filter btn-apply" onclick="aplicarFiltroPersonalizado()"><i class="fas fa-check"></i> Aplicar</button>
                                 </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-                <!-- FILTRO DE PERÍODO -->
-                <div class="modern-filter-container">
-                    <button class="modern-filter-btn" onclick="toggleDateFilter()" id="btnPeriodo">
-                        <i class="far fa-calendar-alt"></i>
-                        <span id="currentPeriodText">Todos os Registros</span>
-                        <i class="fas fa-chevron-down" style="font-size: 11px; margin-left: 5px;"></i>
-                    </button>
-                    
-                    <div class="modern-filter-dropdown" id="dateFilterDropdown">
-                        <div class="filter-option active-filter" id="opt-todos" onclick="selectPredefinedPeriod(this, 'Todos os Registros')">Todos os Registros</div>
-                        <div class="filter-option" id="opt-mes-atual" onclick="selectPredefinedPeriod(this, 'Este Mês')">Este Mês</div>
-                        <div class="filter-option" onclick="selectPredefinedPeriod(this, 'Mês Passado')">Mês Passado</div>
-                        <div class="filter-option" onclick="selectPredefinedPeriod(this, 'Últimos 3 Meses')">Últimos 3 Meses</div>
-                        <div class="filter-option" onclick="selectPredefinedPeriod(this, 'Este Ano')">Este Ano</div>
-                        
-                        <div class="filter-custom-date">
-                            <h4>Período Personalizado</h4>
-                            <div class="date-range-inputs">
-                                <div class="date-input-group">
-                                    <label>De:</label>
-                                    <input type="date" id="dataInicioFiltro">
-                                </div>
-                                <div class="date-input-group">
-                                    <label>Até:</label>
-                                    <input type="date" id="dataFimFiltro">
-                                </div>
-                            </div>
-                            <div class="filter-actions">
-                                <button type="button" class="btn-filter btn-clear" onclick="limparFiltro()"><i class="fas fa-eraser"></i> Limpar</button>
-                                <button type="button" class="btn-filter btn-apply" onclick="aplicarFiltroPersonalizado()"><i class="fas fa-check"></i> Aplicar</button>
                             </div>
                         </div>
                     </div>
