@@ -292,13 +292,16 @@ function renderizarDashboard() {
 }
 
 function renderizarGraficos(receberList, pagarList) {
+    // Verifica se a biblioteca Chart.js está carregada
+    if (typeof Chart === 'undefined') return;
+
     // Gráfico 1: Fluxo de Caixa
     const ctxFluxo = document.getElementById('fluxoCaixaChart');
-    if (ctxFluxo) {
+    if (ctxFluxo && ctxFluxo.offsetParent !== null) { // Apenas renderiza se o canvas estiver visível
         if (fluxoCaixaChartInstance) fluxoCaixaChartInstance.destroy();
 
-        const recTotal = receberList.reduce((acc, c) => acc + c.valor, 0);
-        const pagTotal = pagarList.reduce((acc, c) => acc + c.valor, 0);
+        const recTotal = receberList.reduce((acc, c) => acc + (c.valor || 0), 0);
+        const pagTotal = pagarList.reduce((acc, c) => acc + (c.valor || 0), 0);
 
         fluxoCaixaChartInstance = new Chart(ctxFluxo.getContext('2d'), {
             type: 'bar',
@@ -317,7 +320,7 @@ function renderizarGraficos(receberList, pagarList) {
 
     // Gráfico 2: Despesas por Categoria
     const ctxCusto = document.getElementById('centroCustoChart');
-    if (ctxCusto) {
+    if (ctxCusto && ctxCusto.offsetParent !== null) { // Apenas renderiza se o canvas estiver visível
         if (centroCustoChartInstance) centroCustoChartInstance.destroy();
 
         const categoriasMap = {};
