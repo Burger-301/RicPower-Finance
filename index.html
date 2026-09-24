@@ -2,10 +2,9 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>RICPOWER - Dashboard Financeiro & Estoque</title>
     
-    <!-- Bibliotecas Externas (Chart.js e FontAwesome) -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     
@@ -28,6 +27,7 @@
             margin: 0; 
             padding: 0; 
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            -webkit-tap-highlight-color: transparent;
         }
 
         body { 
@@ -44,14 +44,14 @@
             align-items: center;
             min-height: 100vh;
             background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
-            padding: 20px;
+            padding: 15px;
         }
 
         .login-card {
             background-color: var(--card-bg);
             width: 100%;
             max-width: 420px;
-            padding: 40px 30px;
+            padding: 30px 20px;
             border-radius: 12px;
             box-shadow: 0 10px 25px rgba(0,0,0,0.3);
             border-top: 5px solid var(--accent-color);
@@ -63,14 +63,14 @@
         }
 
         .login-logo-img {
-            max-width: 200px;
+            max-width: 180px;
             height: auto;
             display: block;
             margin: 0 auto;
         }
 
         .login-logo-text {
-            font-size: 28px;
+            font-size: 26px;
             font-weight: 800;
             color: var(--primary-color);
             display: flex;
@@ -84,14 +84,14 @@
         .login-subtitle {
             text-align: center;
             color: var(--text-muted);
-            font-size: 14px;
-            margin-bottom: 25px;
+            font-size: 13px;
+            margin-bottom: 20px;
         }
 
         .login-alert {
             padding: 10px 15px;
             border-radius: 6px;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
             font-size: 13px;
             text-align: center;
             font-weight: 600;
@@ -104,7 +104,7 @@
         }
 
         .login-footer {
-            margin-top: 25px;
+            margin-top: 20px;
             text-align: center;
             color: #777;
         }
@@ -113,37 +113,48 @@
         .app-container {
             display: flex;
             min-height: 100vh;
+            position: relative;
         }
 
-        /* Sidebar */
+        /* Sidebar & Overlay Móvel */
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6);
+            z-index: 99;
+            backdrop-filter: blur(2px);
+        }
+
         .sidebar {
             width: 260px;
             background-color: var(--primary-color);
             color: white;
-            padding: 25px 0;
+            padding: 20px 0;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
             position: fixed;
             height: 100vh;
             z-index: 100;
+            transition: transform 0.3s ease;
         }
 
         .logo {
-            padding: 0 20px;
-            margin-bottom: 30px;
+            padding: 0 15px;
+            margin-bottom: 25px;
             text-align: center;
         }
 
         .sidebar-logo-img {
-            max-height: 40px;
+            max-height: 38px;
             width: auto;
             display: block;
             margin: 0 auto;
         }
 
         .sidebar-logo-text {
-            font-size: 22px;
+            font-size: 20px;
             font-weight: bold;
             color: #ffffff;
             display: flex;
@@ -158,16 +169,17 @@
             display: flex;
             flex-direction: column;
             flex: 1;
+            overflow-y: auto;
         }
 
         .nav-link {
-            padding: 16px 25px;
+            padding: 14px 20px;
             color: #ecf0f1;
             text-decoration: none;
             display: flex;
             align-items: center;
             gap: 15px;
-            font-size: 15px;
+            font-size: 14px;
             font-weight: 500;
             transition: all 0.2s ease;
             cursor: pointer;
@@ -180,7 +192,7 @@
         }
 
         .sidebar-footer {
-            padding: 20px 25px;
+            padding: 15px 20px;
             border-top: 1px solid rgba(255,255,255,0.1);
         }
 
@@ -188,9 +200,9 @@
             display: flex;
             align-items: center;
             gap: 10px;
-            font-size: 13px;
+            font-size: 12px;
             color: #bbb;
-            margin-bottom: 12px;
+            margin-bottom: 10px;
         }
 
         .btn-logout {
@@ -206,55 +218,62 @@
             align-items: center;
             justify-content: center;
             gap: 8px;
-            transition: 0.2s;
-        }
-
-        .btn-logout:hover {
-            background-color: rgba(231, 76, 60, 0.2);
-            color: #fff;
         }
 
         /* Main Content */
         .main-content {
             flex: 1;
             margin-left: 260px;
-            padding: 30px;
+            padding: 25px;
             max-width: calc(100vw - 260px);
+            transition: margin-left 0.3s ease;
         }
 
+        /* Header & Mobile Toggle */
         .header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 30px;
-            flex-wrap: wrap;
+            margin-bottom: 25px;
             gap: 15px;
         }
 
+        .header-title-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .mobile-menu-btn {
+            display: none;
+            background-color: var(--primary-color);
+            color: var(--accent-color);
+            border: none;
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 18px;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
         .header h1 {
-            font-size: 26px;
+            font-size: 22px;
             color: var(--primary-color);
             font-weight: 800;
         }
 
         .subtitle {
-            font-size: 14px;
+            font-size: 13px;
             color: var(--text-muted);
-            margin-top: 4px;
+            margin-top: 2px;
         }
 
         /* Tabs */
-        .tab-content {
-            display: none;
-        }
-
-        .tab-content.active {
-            display: block;
-            animation: fadeIn 0.3s ease;
-        }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; animation: fadeIn 0.3s ease; }
 
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(5px); }
+            from { opacity: 0; transform: translateY(4px); }
             to { opacity: 1; transform: translateY(0); }
         }
 
@@ -264,156 +283,145 @@
             background-color: var(--primary-color); 
             color: var(--accent-color); 
             border: 2px solid var(--primary-color); 
-            padding: 10px 18px; 
+            padding: 9px 15px; 
             border-radius: 8px; 
-            font-size: 14px; 
+            font-size: 13px; 
             font-weight: 600; 
             cursor: pointer; 
             display: flex; 
             align-items: center; 
-            gap: 10px; 
-            transition: all 0.2s ease; 
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
+            gap: 8px; 
+            box-shadow: 0 3px 6px rgba(0,0,0,0.1); 
         }
-        .modern-filter-btn:hover { background-color: var(--secondary-color); border-color: var(--accent-color); }
+
         .modern-filter-dropdown { 
             display: none; 
             position: absolute; 
             top: 115%; 
             right: 0; 
             background-color: white; 
-            min-width: 290px; 
-            box-shadow: 0 10px 30px rgba(0,0,0,0.15); 
+            min-width: 280px; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15); 
             border-radius: 10px; 
             z-index: 200; 
             overflow: hidden; 
             border: 1px solid var(--border-color); 
         }
-        .modern-filter-dropdown.show { display: block; animation: fadeInDown 0.2s ease-out; }
+        .modern-filter-dropdown.show { display: block; }
         .filter-option { 
-            padding: 12px 20px; 
+            padding: 12px 18px; 
             cursor: pointer; 
-            font-size: 14px; 
+            font-size: 13px; 
             color: #333; 
-            transition: background 0.2s; 
             border-bottom: 1px solid #f5f5f5; 
             display: flex; 
             justify-content: space-between; 
             align-items: center; 
         }
-        .filter-option:hover { background-color: #f9f9f9; color: var(--primary-color); font-weight: 600; }
         .filter-option.active-filter { background-color: #fff9d6; color: var(--primary-color); font-weight: bold; border-left: 4px solid var(--accent-color); }
-        .filter-custom-date { padding: 15px 20px; background-color: #fcfcfc; border-top: 1px solid var(--border-color); }
-        .filter-custom-date h4 { font-size: 11px; color: #777; margin-bottom: 10px; text-transform: uppercase; font-weight: bold; }
-        .date-range-inputs { display: flex; gap: 10px; margin-bottom: 12px; }
+        .filter-custom-date { padding: 12px 15px; background-color: #fcfcfc; border-top: 1px solid var(--border-color); }
+        .filter-custom-date h4 { font-size: 11px; color: #777; margin-bottom: 8px; text-transform: uppercase; font-weight: bold; }
+        .date-range-inputs { display: flex; gap: 8px; margin-bottom: 10px; }
         .date-input-group { flex: 1; }
-        .date-input-group label { display: block; font-size: 11px; color: #555; margin-bottom: 4px; font-weight: 600; }
-        .date-input-group input { width: 100%; padding: 7px; border: 1px solid #ddd; border-radius: 6px; font-size: 12px; outline: none; }
-        .filter-actions { display: flex; gap: 10px; }
-        .btn-filter { flex: 1; padding: 8px; border: none; border-radius: 5px; font-size: 12px; font-weight: bold; cursor: pointer; text-align: center; }
+        .date-input-group label { display: block; font-size: 10px; color: #555; margin-bottom: 2px; font-weight: 600; }
+        .date-input-group input { width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 5px; font-size: 12px; outline: none; }
+        .filter-actions { display: flex; gap: 8px; }
+        .btn-filter { flex: 1; padding: 8px; border: none; border-radius: 5px; font-size: 11px; font-weight: bold; cursor: pointer; text-align: center; }
         .btn-apply { background-color: var(--accent-color); color: var(--primary-color); }
         .btn-clear { background-color: #eee; color: #555; }
 
         /* CARDS DE KPIS */
-        .cards-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 20px; margin-bottom: 25px; }
+        .cards-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }
         .card { 
             background-color: var(--card-bg); 
-            padding: 22px; 
+            padding: 16px 18px; 
             border-radius: 10px; 
-            box-shadow: 0 4px 6px rgba(0,0,0,0.04); 
+            box-shadow: 0 2px 5px rgba(0,0,0,0.04); 
             display: flex; 
             justify-content: space-between; 
             align-items: center; 
-            border-left: 5px solid; 
+            border-left: 4px solid; 
         }
         .card.income { border-color: var(--success-color); }
         .card.expense { border-color: var(--danger-color); }
         .card.balance { border-color: var(--accent-color); }
         .card.stock { border-color: var(--primary-color); }
-        .card-info h3 { font-size: 12px; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase; font-weight: 700; }
-        .card-info h2 { font-size: 24px; color: var(--primary-color); font-weight: 800; }
-        .card-icon { font-size: 36px; opacity: 0.25; }
+        .card-info h3 { font-size: 11px; color: var(--text-muted); margin-bottom: 4px; text-transform: uppercase; font-weight: 700; }
+        .card-info h2 { font-size: 20px; color: var(--primary-color); font-weight: 800; }
+        .card-icon { font-size: 28px; opacity: 0.25; }
         .card.income .card-icon { color: var(--success-color); }
         .card.expense .card-icon { color: var(--danger-color); }
         .card.balance .card-icon { color: var(--accent-color); opacity: 0.9; }
         .card.stock .card-icon { color: var(--primary-color); }
 
-        /* DYNAMIC PANELS & TABLES */
-        .dashboard-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; margin-bottom: 25px; }
-        @media (max-width: 1024px) { .dashboard-grid { grid-template-columns: 1fr; } }
-        .panel { background-color: var(--card-bg); padding: 22px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.04); border: 1px solid var(--border-color); }
-        .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid var(--border-color); flex-wrap: wrap; gap: 10px; }
-        .panel-title { font-size: 16px; color: var(--primary-color); font-weight: 700; display: flex; align-items: center; gap: 8px; }
-        .panel-actions { display: flex; gap: 10px; align-items: center; }
-        .search-box { position: relative; min-width: 260px; }
-        .search-box i { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #999; }
-        .search-box input { padding-left: 35px; }
-        .filter-select { padding: 9px 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 13px; color: #555; outline: none; background-color: #f9f9f9; cursor: pointer; }
-        .table-responsive { width: 100%; overflow-x: auto; }
-        table { width: 100%; border-collapse: collapse; }
-        th, td { padding: 12px 14px; text-align: left; border-bottom: 1px solid #eee; font-size: 13px; }
-        th { background-color: #f9fafb; color: #6b7280; font-weight: 600; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px; }
+        /* PANELS & TABLES */
+        .dashboard-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 18px; margin-bottom: 20px; }
+        .panel { background-color: var(--card-bg); padding: 18px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.04); border: 1px solid var(--border-color); }
+        .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid var(--border-color); flex-wrap: wrap; gap: 10px; }
+        .panel-title { font-size: 15px; color: var(--primary-color); font-weight: 700; display: flex; align-items: center; gap: 8px; }
+        .panel-actions { display: flex; gap: 8px; align-items: center; width: 100%; justify-content: space-between; }
+        .search-box { position: relative; flex: 1; min-width: 180px; }
+        .search-box i { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: #999; font-size: 12px; }
+        .search-box input { padding-left: 30px; }
+        .filter-select { padding: 8px 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 12px; color: #555; outline: none; background-color: #f9f9f9; }
+        
+        .table-responsive { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        table { width: 100%; border-collapse: collapse; white-space: nowrap; }
+        th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #eee; font-size: 12px; }
+        th { background-color: #f9fafb; color: #6b7280; font-weight: 600; text-transform: uppercase; font-size: 10px; }
 
         /* BADGES E STATUS */
-        .status { padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: bold; }
+        .status { padding: 3px 8px; border-radius: 20px; font-size: 10px; font-weight: bold; }
         .status.pendente { background-color: #fff3cd; color: #856404; }
         .status.pago { background-color: #d4edda; color: #155724; }
         .status.atrasado { background-color: #f8d7da; color: #721c24; }
-        .badge { padding: 4px 10px; border-radius: 4px; font-size: 11px; font-weight: bold; }
+        .badge { padding: 3px 8px; border-radius: 4px; font-size: 10px; font-weight: bold; }
         .badge-accent { background-color: var(--accent-color); color: var(--primary-color); }
         .badge-danger { background-color: #fde8e8; color: var(--danger-color); }
         .badge-success { background-color: #def7ec; color: var(--success-color); }
-        .category-badge { background-color: #f1f2f6; color: #2f3542; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; border-left: 3px solid var(--accent-color); }
+        .category-badge { background-color: #f1f2f6; color: #2f3542; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; border-left: 3px solid var(--accent-color); }
 
         /* BOTÕES E FORMULÁRIOS */
-        .btn { padding: 9px 16px; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.2s; }
+        .btn { padding: 8px 14px; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.2s; }
         .btn-primary { background-color: var(--accent-color); color: var(--primary-color); }
-        .btn-primary:hover { background-color: var(--accent-hover); }
         .btn-secondary { background-color: var(--primary-color); color: #fff; }
-        .btn-secondary:hover { background-color: var(--secondary-color); }
         .btn-success { background-color: var(--success-color); color: white; }
-        .btn-success:hover { background-color: #27ae60; }
         .btn-danger { background-color: var(--danger-color); color: white; }
-        .btn-danger:hover { background-color: #c0392b; }
-        .btn-sm { padding: 6px 12px; font-size: 12px; }
+        .btn-sm { padding: 6px 10px; font-size: 11px; }
         .btn-full { width: 100%; }
-        .btn-action { padding: 5px 8px; border-radius: 4px; border: none; cursor: pointer; font-size: 12px; margin-right: 4px; }
-        .form-group { margin-bottom: 15px; }
+        .btn-action { padding: 6px 8px; border-radius: 4px; border: none; cursor: pointer; font-size: 11px; margin-right: 2px; }
+
+        .form-group { margin-bottom: 12px; }
         .form-group.full-width { grid-column: 1 / -1; }
-        .form-label { display: block; margin-bottom: 6px; font-size: 12px; font-weight: 700; color: #444; text-transform: uppercase; }
-        .form-control { width: 100%; padding: 10px 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; outline: none; transition: 0.2s; }
-        .form-control:focus { border-color: var(--accent-color); box-shadow: 0 0 0 2px rgba(255, 213, 0, 0.3); }
+        .form-label { display: block; margin-bottom: 4px; font-size: 11px; font-weight: 700; color: #444; text-transform: uppercase; }
+        .form-control { width: 100%; padding: 9px 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 13px; outline: none; }
 
         /* DRE CONTAINER */
-        .dre-container { display: flex; flex-direction: column; gap: 12px; padding: 10px 0; }
-        .dre-row { display: flex; justify-content: space-between; align-items: center; padding: 14px 18px; border-radius: 8px; background-color: #f9f9f9; font-size: 15px; }
+        .dre-container { display: flex; flex-direction: column; gap: 10px; padding: 5px 0; }
+        .dre-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 14px; border-radius: 8px; background-color: #f9f9f9; font-size: 13px; }
         .dre-row.text-sub { background-color: #ffffff; border-left: 3px solid #ddd; }
         .dre-row.highlight-green { background-color: #eafaf1; color: #1e8449; font-weight: bold; }
         .dre-row.highlight-bold { background-color: #f2f4f4; font-weight: bold; color: var(--primary-color); }
         .dre-row.highlight-accent { background-color: #fff9d6; border: 2px solid var(--accent-color); }
-        .dre-footer { margin-top: 15px; text-align: right; font-size: 15px; color: #555; }
 
         /* EXTENSÃO CHROME POPUP SIMULATOR */
-        .chrome-popup-simulator { background-color: #ffffff; border: 2px solid var(--primary-color); border-radius: 10px; padding: 20px; max-width: 360px; box-shadow: 0 8px 20px rgba(0,0,0,0.15); }
-        .popup-header { background-color: var(--primary-color); color: var(--accent-color); padding: 10px; margin: -20px -20px 15px -20px; border-radius: 8px 8px 0 0; font-weight: bold; text-align: center; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .chrome-popup-simulator { background-color: #ffffff; border: 2px solid var(--primary-color); border-radius: 10px; padding: 15px; max-width: 100%; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .popup-header { background-color: var(--primary-color); color: var(--accent-color); padding: 8px; margin: -15px -15px 12px -15px; border-radius: 8px 8px 0 0; font-weight: bold; text-align: center; font-size: 13px; }
 
-        /* ALERTA DE ESTOQUE PAINEL */
-        .alerts-container { display: flex; flex-direction: column; gap: 10px; }
-        .alert-item { display: flex; align-items: center; justify-content: space-between; padding: 12px 15px; background-color: #fff5f5; border-left: 4px solid var(--danger-color); border-radius: 6px; font-size: 13px; }
+        .alerts-container { display: flex; flex-direction: column; gap: 8px; }
+        .alert-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; background-color: #fff5f5; border-left: 4px solid var(--danger-color); border-radius: 6px; font-size: 12px; }
 
-        /* MODAIS */
-        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.7); align-items: center; justify-content: center; padding: 20px; }
-        .modal-content { background-color: #fff; padding: 30px; border-radius: 12px; width: 100%; max-width: 620px; max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.3); position: relative; border-top: 5px solid var(--accent-color); }
-        .close-modal { position: absolute; top: 15px; right: 20px; font-size: 26px; font-weight: bold; color: #aaa; cursor: pointer; }
-        .close-modal:hover { color: #333; }
-        .modal-title { margin-bottom: 20px; color: var(--primary-color); border-bottom: 2px solid #f4f7f6; padding-bottom: 10px; font-size: 20px; }
-        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        /* MODAIS MÓBILES */
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.7); align-items: center; justify-content: center; padding: 12px; }
+        .modal-content { background-color: #fff; padding: 20px 15px; border-radius: 12px; width: 100%; max-width: 550px; max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 25px rgba(0,0,0,0.3); position: relative; border-top: 5px solid var(--accent-color); }
+        .close-modal { position: absolute; top: 12px; right: 15px; font-size: 24px; font-weight: bold; color: #aaa; cursor: pointer; }
+        .modal-title { margin-bottom: 15px; color: var(--primary-color); border-bottom: 2px solid #f4f7f6; padding-bottom: 8px; font-size: 17px; }
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 
-        /* UTILITIES */
         .text-danger { color: var(--danger-color); }
         .text-success { color: var(--success-color); }
         .text-accent { color: var(--accent-color); }
-        .text-large { font-size: 20px; }
+        .text-large { font-size: 18px; }
         .font-bold { font-weight: bold; }
         .mb-10 { margin-bottom: 10px; }
         .mb-15 { margin-bottom: 15px; }
@@ -422,25 +430,59 @@
         .mt-20 { margin-top: 20px; }
         .ml-5 { margin-left: 5px; }
 
-        /* RESPONSIVIDADE */
+        /* REGRAS DE MEDIA QUERIES PARA DISPOSITIVOS MÓVEIS */
         @media (max-width: 768px) {
-            .sidebar { width: 70px; padding: 15px 0; }
-            .logo span { display: none; }
-            .nav-link span { display: none; }
-            .user-status span { display: none; }
-            .main-content { margin-left: 70px; max-width: calc(100vw - 70px); padding: 15px; }
+            .mobile-menu-btn { display: inline-flex; align-items: center; justify-content: center; }
+            .sidebar-overlay.active { display: block; }
+            
+            .sidebar {
+                transform: translateX(-100%);
+                box-shadow: 5px 0 20px rgba(0,0,0,0.4);
+            }
+            .sidebar.active {
+                transform: translateX(0);
+            }
+            
+            .main-content {
+                margin-left: 0 !important;
+                max-width: 100vw !important;
+                padding: 15px !important;
+            }
+
+            .header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 12px;
+            }
+
+            .modern-filter-container { width: 100%; }
+            .modern-filter-btn { width: 100%; justify-content: space-between; }
+            .modern-filter-dropdown { width: 100%; right: auto; left: 0; }
+
+            .dashboard-grid { grid-template-columns: 1fr; }
             .form-grid { grid-template-columns: 1fr; }
-            .search-box { min-width: 100%; }
+            .panel-actions { flex-direction: column; align-items: stretch; gap: 8px; }
+            .panel-actions .btn { width: 100%; }
+        }
+
+        @media (max-width: 480px) {
+            .cards-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+            .card { padding: 12px; }
+            .card-info h2 { font-size: 16px; }
+            .card-info h3 { font-size: 9px; }
+            .card-icon { font-size: 22px; }
+            .header h1 { font-size: 19px; }
         }
     </style>
 </head>
 <body>
 
-    <!-- 1. TELA DE LOGIN FIXO -->
+    <div id="sidebarOverlay" class="sidebar-overlay" onclick="toggleSidebar()"></div>
+
     <div id="loginScreen" class="login-container">
         <div class="login-card">
             <div class="login-logo">
-                <img src="logo.jpeg" alt="RICPOWER Logo" class="login-logo-img" onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\'login-logo-text\'><i class=\'fas fa-bolt\'></i> RICPOWER</div>';">
+                <img src="logo.png" alt="RICPOWER Logo" class="login-logo-img" onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\'login-logo-text\'><i class=\'fas fa-bolt\'></i> RICPOWER</div>';">
             </div>
             <p class="login-subtitle">Gestão Financeira e Controle de Estoque</p>
             
@@ -470,13 +512,11 @@
         </div>
     </div>
 
-    <!-- 2. APLICAÇÃO PRINCIPAL (SISTEMA DE PAINEL) -->
     <div id="appScreen" class="app-container" style="display: none;">
         
-        <!-- SIDEBAR BARRA LATERAL -->
-        <aside class="sidebar">
+        <aside class="sidebar" id="mainSidebar">
             <div class="logo">
-                <img src="logo.jpeg" alt="RICPOWER Logo" class="sidebar-logo-img" onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\'sidebar-logo-text\'><i class=\'fas fa-bolt\'></i> RICPOWER</div>';">
+                <img src="logo.png" alt="RICPOWER Logo" class="sidebar-logo-img" onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\'sidebar-logo-text\'><i class=\'fas fa-bolt\'></i> RICPOWER</div>';">
             </div>
             
             <nav class="sidebar-nav">
@@ -511,17 +551,19 @@
             </div>
         </aside>
 
-        <!-- CONTEÚDO PRINCIPAL -->
         <main class="main-content">
             
-            <!-- HEADER SUPERIOR COM FILTRO DE PERÍODO -->
             <header class="header">
-                <div>
-                    <h1 id="pageTitle">Visão Geral Financeira</h1>
-                    <p class="subtitle" id="pageSubTitle">Resumo das atividades e fluxo de caixa</p>
+                <div class="header-title-container">
+                    <button class="mobile-menu-btn" onclick="toggleSidebar()">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <div>
+                        <h1 id="pageTitle">Visão Geral Financeira</h1>
+                        <p class="subtitle" id="pageSubTitle">Resumo das atividades e fluxo de caixa</p>
+                    </div>
                 </div>
 
-                <!-- Filtro Avançado de Período -->
                 <div class="modern-filter-container">
                     <button class="modern-filter-btn" onclick="toggleDateFilter()" id="btnPeriodo">
                         <i class="far fa-calendar-alt"></i>
@@ -557,19 +599,18 @@
                 </div>
             </header>
 
-            <!-- TAB 1: DASHBOARD -->
             <section id="tab-dashboard" class="tab-content active">
                 <div class="cards-grid">
                     <div class="card income">
                         <div class="card-info">
-                            <h3 id="cardReceberLabel">A Receber (Este Mês)</h3>
+                            <h3 id="cardReceberLabel">A Receber</h3>
                             <h2 id="dashTotalReceber">R$ 0,00</h2>
                         </div>
                         <div class="card-icon"><i class="fas fa-wallet"></i></div>
                     </div>
                     <div class="card expense">
                         <div class="card-info">
-                            <h3 id="cardPagarLabel">A Pagar (Este Mês)</h3>
+                            <h3 id="cardPagarLabel">A Pagar</h3>
                             <h2 id="dashTotalPagar">R$ 0,00</h2>
                         </div>
                         <div class="card-icon"><i class="fas fa-file-invoice-dollar"></i></div>
@@ -583,14 +624,13 @@
                     </div>
                     <div class="card stock">
                         <div class="card-info">
-                            <h3>Patrimônio em Estoque</h3>
+                            <h3>Estoque</h3>
                             <h2 id="dashValorEstoque">R$ 0,00</h2>
                         </div>
                         <div class="card-icon"><i class="fas fa-boxes"></i></div>
                     </div>
                 </div>
 
-                <!-- Gráficos -->
                 <div class="dashboard-grid">
                     <div class="panel">
                         <div class="panel-header">
@@ -606,7 +646,6 @@
                     </div>
                 </div>
 
-                <!-- Resumo Dinâmico e Alertas de Estoque -->
                 <div class="dashboard-grid">
                     <div class="panel">
                         <div class="panel-header">
@@ -627,9 +666,7 @@
                                         <th>Status</th>
                                     </tr>
                                 </thead>
-                                <tbody id="tableProximosVencimentos">
-                                    <!-- Preenchido via JS -->
-                                </tbody>
+                                <tbody id="tableProximosVencimentos"></tbody>
                             </table>
                         </div>
                     </div>
@@ -639,14 +676,11 @@
                             <h3 class="panel-title">Alertas de Reposição</h3>
                             <button class="btn btn-secondary btn-sm" onclick="showTab('estoque')"><i class="fas fa-boxes"></i> Ver Estoque</button>
                         </div>
-                        <div id="painelAlertasEstoque" class="alerts-container">
-                            <!-- Preenchido via JS -->
-                        </div>
+                        <div id="painelAlertasEstoque" class="alerts-container"></div>
                     </div>
                 </div>
             </section>
 
-            <!-- TAB 2: CONTAS A PAGAR -->
             <section id="tab-pagar" class="tab-content">
                 <div class="panel">
                     <div class="panel-header">
@@ -678,15 +712,12 @@
                                     <th>Ações</th>
                                 </tr>
                             </thead>
-                            <tbody id="tableContasPagar">
-                                <!-- Preenchido via JS -->
-                            </tbody>
+                            <tbody id="tableContasPagar"></tbody>
                         </table>
                     </div>
                 </div>
             </section>
 
-            <!-- TAB 3: CONTAS A RECEBER -->
             <section id="tab-receber" class="tab-content">
                 <div class="panel">
                     <div class="panel-header">
@@ -718,34 +749,31 @@
                                     <th>Ações</th>
                                 </tr>
                             </thead>
-                            <tbody id="tableContasReceber">
-                                <!-- Preenchido via JS -->
-                            </tbody>
+                            <tbody id="tableContasReceber"></tbody>
                         </table>
                     </div>
                 </div>
             </section>
 
-            <!-- TAB 4: CONTROLE DE ESTOQUE (PEÇAS) -->
             <section id="tab-estoque" class="tab-content">
                 <div class="cards-grid mb-20">
                     <div class="card balance">
                         <div class="card-info">
-                            <h3>Patrimônio Investido</h3>
+                            <h3>Patrimônio</h3>
                             <h2 id="stkPatrimonioTotal">R$ 0,00</h2>
                         </div>
                         <div class="card-icon"><i class="fas fa-dollar-sign"></i></div>
                     </div>
                     <div class="card income">
                         <div class="card-info">
-                            <h3>SKUs Cadastrados</h3>
+                            <h3>SKUs</h3>
                             <h2 id="stkTotalSkus">0</h2>
                         </div>
                         <div class="card-icon"><i class="fas fa-barcode"></i></div>
                     </div>
                     <div class="card expense">
                         <div class="card-info">
-                            <h3>Estoque Baixo / Crítico</h3>
+                            <h3>Alertas</h3>
                             <h2 id="stkTotalAlertas">0</h2>
                         </div>
                         <div class="card-icon"><i class="fas fa-exclamation-triangle"></i></div>
@@ -756,7 +784,7 @@
                     <div class="panel-header">
                         <div class="search-box">
                             <i class="fas fa-search"></i>
-                            <input type="text" id="searchEstoque" class="form-control" placeholder="Buscar por SKU ou Nome do Produto..." onkeyup="renderizarEstoque()">
+                            <input type="text" id="searchEstoque" class="form-control" placeholder="Buscar por SKU ou Nome..." onkeyup="renderizarEstoque()">
                         </div>
                         <div class="panel-actions">
                             <select id="filterAlertaEstoque" class="filter-select" onchange="renderizarEstoque()">
@@ -783,28 +811,25 @@
                                     <th>Ações</th>
                                 </tr>
                             </thead>
-                            <tbody id="tableEstoque">
-                                <!-- Preenchido via JS -->
-                            </tbody>
+                            <tbody id="tableEstoque"></tbody>
                         </table>
                     </div>
                 </div>
             </section>
 
-            <!-- TAB 5: DEMONSTRATIVO DE RESULTADO (DRE) -->
             <section id="tab-dre" class="tab-content">
                 <div class="panel">
                     <div class="panel-header">
-                        <h3 class="panel-title"><i class="fas fa-calculator"></i> Demonstrativo do Resultado do Exercício (DRE)</h3>
+                        <h3 class="panel-title"><i class="fas fa-calculator"></i> Demonstrativo do Resultado (DRE)</h3>
                         <span class="badge badge-accent" id="drePeriodoText">Este Mês</span>
                     </div>
                     <div class="dre-container">
                         <div class="dre-row highlight-green">
-                            <span>(+) Receita Bruta (Entradas Efetuadas/Previstas)</span>
+                            <span>(+) Receita Bruta</span>
                             <strong id="dreReceitaBruta">R$ 0,00</strong>
                         </div>
                         <div class="dre-row text-sub">
-                            <span>(-) Custos de Peças e Componentes (CMV)</span>
+                            <span>(-) Custos de Peças (CMV)</span>
                             <span id="dreCMV" class="text-danger">R$ 0,00</span>
                         </div>
                         <div class="dre-row highlight-bold">
@@ -819,75 +844,53 @@
                             <span>(=) RESULTADO LÍQUIDO DO PERÍODO</span>
                             <strong id="dreResultadoLiquido" class="text-large">R$ 0,00</strong>
                         </div>
-                        <div class="dre-footer">
-                            <span>Margem Líquida do Negócio: <strong id="dreMargemLiquida">0%</strong></span>
-                        </div>
                     </div>
                 </div>
             </section>
 
-            <!-- TAB 6: EXTENSÃO CHROME & BACKUP -->
             <section id="tab-extensao" class="tab-content">
                 <div class="dashboard-grid">
                     <div class="panel">
                         <div class="panel-header">
-                            <h3 class="panel-title"><i class="fab fa-chrome"></i> Extensão do Chrome (Injetor Rápido)</h3>
+                            <h3 class="panel-title"><i class="fab fa-chrome"></i> Injetor Rápido</h3>
                         </div>
-                        <p class="mb-15">Simule ou instale o atalho rápido do navegador para realizar lançamentos de qualquer aba:</p>
-                        
                         <div class="chrome-popup-simulator">
-                            <div class="popup-header">
-                                <i class="fas fa-bolt"></i> RICPOWER Quick Add
-                            </div>
+                            <div class="popup-header"><i class="fas fa-bolt"></i> RICPOWER Quick Add</div>
                             <form onsubmit="event.preventDefault(); lancamentoRapidoExtensao();">
-                                <div class="form-group mb-10">
+                                <div class="form-group">
                                     <label class="form-label">Tipo</label>
                                     <select id="extTipo" class="form-control">
                                         <option value="RECEBER">Conta a Receber (Entrada)</option>
                                         <option value="PAGAR">Conta a Pagar (Saída)</option>
                                     </select>
                                 </div>
-                                <div class="form-group mb-10">
+                                <div class="form-group">
                                     <label class="form-label">Pessoa / Empresa</label>
                                     <input type="text" id="extPessoa" class="form-control" placeholder="Cliente ou Fornecedor" required>
                                 </div>
-                                <div class="form-group mb-10">
+                                <div class="form-group">
                                     <label class="form-label">Descrição</label>
                                     <input type="text" id="extDescricao" class="form-control" placeholder="Ex: Conserto de Placa" required>
                                 </div>
-                                <div class="form-group mb-10">
+                                <div class="form-group">
                                     <label class="form-label">Valor (R$)</label>
                                     <input type="number" step="0.01" id="extValor" class="form-control" placeholder="0,00" required>
                                 </div>
-                                <button type="submit" class="btn btn-primary btn-full mt-10">
-                                    <i class="fas fa-bolt"></i> Lançar via Extensão
-                                </button>
+                                <button type="submit" class="btn btn-primary btn-full mt-10"><i class="fas fa-bolt"></i> Lançar</button>
                             </form>
                         </div>
                     </div>
 
                     <div class="panel">
                         <div class="panel-header">
-                            <h3 class="panel-title"><i class="fas fa-database"></i> Backup & Exportação de Dados</h3>
+                            <h3 class="panel-title"><i class="fas fa-database"></i> Backup & Exportação</h3>
                         </div>
-                        <p class="mb-20">Faça o download do seu banco de dados completo ou importe relatórios em CSV:</p>
-                        
-                        <div class="backup-actions">
-                            <button class="btn btn-secondary btn-full mb-10" onclick="exportarBackupJSON()">
-                                <i class="fas fa-download"></i> Exportar Dados Completos (JSON)
-                            </button>
-                            <button class="btn btn-secondary btn-full mb-10" onclick="exportarCSV('pagar')">
-                                <i class="fas fa-file-csv"></i> Exportar Contas a Pagar (CSV)
-                            </button>
-                            <button class="btn btn-secondary btn-full mb-20" onclick="exportarCSV('receber')">
-                                <i class="fas fa-file-csv"></i> Exportar Contas a Receber (CSV)
-                            </button>
-                            
-                            <hr class="mb-20">
-                            
-                            <label class="form-label mb-5">Restaurar do Arquivo (JSON)</label>
-                            <input type="file" id="importFile" accept=".json" class="form-control mb-10" onchange="importarBackupJSON(event)">
-                        </div>
+                        <button class="btn btn-secondary btn-full mb-10" onclick="exportarBackupJSON()"><i class="fas fa-download"></i> Exportar JSON</button>
+                        <button class="btn btn-secondary btn-full mb-10" onclick="exportarCSV('pagar')"><i class="fas fa-file-csv"></i> Exportar A Pagar (CSV)</button>
+                        <button class="btn btn-secondary btn-full mb-20" onclick="exportarCSV('receber')"><i class="fas fa-file-csv"></i> Exportar A Receber (CSV)</button>
+                        <hr class="mb-15">
+                        <label class="form-label mb-5">Restaurar JSON</label>
+                        <input type="file" id="importFile" accept=".json" class="form-control" onchange="importarBackupJSON(event)">
                     </div>
                 </div>
             </section>
@@ -895,9 +898,6 @@
         </main>
     </div>
 
-    <!-- 3. MODAIS DE CADASTRO E EDIÇÃO -->
-    
-    <!-- Modal Conta a Receber (Entrada) -->
     <div id="modalEntrada" class="modal">
         <div class="modal-content">
             <span class="close-modal" onclick="fecharModal('modalEntrada')">&times;</span>
@@ -906,57 +906,42 @@
                 <input type="hidden" id="entId">
                 <div class="form-grid">
                     <div class="form-group full-width">
-                        <label class="form-label" for="entCliente">Cliente</label>
-                        <input type="text" id="entCliente" class="form-control" placeholder="Nome do Cliente" required>
+                        <label class="form-label">Cliente</label>
+                        <input type="text" id="entCliente" class="form-control" required>
                     </div>
                     <div class="form-group full-width">
-                        <label class="form-label" for="entDescricao">Descrição</label>
-                        <input type="text" id="entDescricao" class="form-control" placeholder="Ex: Conserto de placa de vídeo" required>
+                        <label class="form-label">Descrição</label>
+                        <input type="text" id="entDescricao" class="form-control" required>
                     </div>
                     <div class="form-group">
-                        <label class="form-label" for="entValor">Valor (R$)</label>
-                        <input type="number" step="0.01" id="entValor" class="form-control" placeholder="0,00" required>
+                        <label class="form-label">Valor (R$)</label>
+                        <input type="number" step="0.01" id="entValor" class="form-control" required>
                     </div>
                     <div class="form-group">
-                        <label class="form-label" for="entVencimento">Data de Vencimento</label>
+                        <label class="form-label">Vencimento</label>
                         <input type="date" id="entVencimento" class="form-control" required>
                     </div>
                     <div class="form-group">
-                        <label class="form-label" for="entCategoria">Categoria / Serviço</label>
+                        <label class="form-label">Categoria</label>
                         <select id="entCategoria" class="form-control">
                             <option value="Reparos">Reparos</option>
                             <option value="Peças Novas">Peças Novas</option>
                             <option value="Manutenção">Manutenção</option>
-                            <option value="Vendas">Vendas Diretas</option>
                         </select>
                     </div>
                     <div class="form-group">
-                        <label class="form-label" for="entStatus">Status</label>
+                        <label class="form-label">Status</label>
                         <select id="entStatus" class="form-control">
                             <option value="PENDENTE">Pendente</option>
                             <option value="PAGO">Pago</option>
                         </select>
                     </div>
-                    <div class="form-group">
-                        <label class="form-label" for="entDataPagamento">Data de Recebimento</label>
-                        <input type="date" id="entDataPagamento" class="form-control">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label" for="entTipoPagamento">Tipo de Pagamento</label>
-                        <select id="entTipoPagamento" class="form-control">
-                            <option value="PIX">PIX</option>
-                            <option value="Dinheiro">Dinheiro</option>
-                            <option value="Cartão">Cartão de Crédito/Débito</option>
-                            <option value="Transferência">Transferência</option>
-                        </select>
-                    </div>
                 </div>
-                <button type="submit" class="btn btn-primary btn-full mt-20"><i class="fas fa-save"></i> Guardar Entrada</button>
+                <button type="submit" class="btn btn-primary btn-full mt-10"><i class="fas fa-save"></i> Guardar Entrada</button>
             </form>
         </div>
     </div>
 
-    <!-- Modal Conta a Pagar (Saída) -->
     <div id="modalSaida" class="modal">
         <div class="modal-content">
             <span class="close-modal" onclick="fecharModal('modalSaida')">&times;</span>
@@ -965,99 +950,83 @@
                 <input type="hidden" id="pagId">
                 <div class="form-grid">
                     <div class="form-group full-width">
-                        <label class="form-label" for="pagFornecedor">Fornecedor</label>
-                        <input type="text" id="pagFornecedor" class="form-control" placeholder="Ex: AliExpress, RGE, Imobiliária" required>
+                        <label class="form-label">Fornecedor</label>
+                        <input type="text" id="pagFornecedor" class="form-control" required>
                     </div>
                     <div class="form-group full-width">
-                        <label class="form-label" for="pagDescricao">Descrição</label>
-                        <input type="text" id="pagDescricao" class="form-control" placeholder="Ex: Lote de chips, Aluguel" required>
+                        <label class="form-label">Descrição</label>
+                        <input type="text" id="pagDescricao" class="form-control" required>
                     </div>
                     <div class="form-group">
-                        <label class="form-label" for="pagValor">Valor (R$)</label>
-                        <input type="number" step="0.01" id="pagValor" class="form-control" placeholder="0,00" required>
+                        <label class="form-label">Valor (R$)</label>
+                        <input type="number" step="0.01" id="pagValor" class="form-control" required>
                     </div>
                     <div class="form-group">
-                        <label class="form-label" for="pagVencimento">Data de Vencimento</label>
+                        <label class="form-label">Vencimento</label>
                         <input type="date" id="pagVencimento" class="form-control" required>
                     </div>
                     <div class="form-group">
-                        <label class="form-label" for="pagCategoria">Centro de Custo / Categoria</label>
+                        <label class="form-label">Categoria</label>
                         <select id="pagCategoria" class="form-control">
-                            <option value="Custos Fixos">Custos Fixos (Aluguel, Luz)</option>
-                            <option value="Peças Novas">Peças Novas (CMV)</option>
+                            <option value="Custos Fixos">Custos Fixos</option>
+                            <option value="Peças Novas">Peças Novas</option>
                             <option value="Administrativo">Administrativo</option>
-                            <option value="Pessoal">Pessoal / Pro-labore</option>
                         </select>
                     </div>
                     <div class="form-group">
-                        <label class="form-label" for="pagStatus">Status</label>
+                        <label class="form-label">Status</label>
                         <select id="pagStatus" class="form-control">
                             <option value="PENDENTE">Pendente</option>
                             <option value="PAGO">Pago</option>
                         </select>
                     </div>
-                    <div class="form-group">
-                        <label class="form-label" for="pagDataPagamento">Data de Pagamento</label>
-                        <input type="date" id="pagDataPagamento" class="form-control">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label" for="pagTipoPagamento">Tipo de Pagamento</label>
-                        <select id="pagTipoPagamento" class="form-control">
-                            <option value="PIX">PIX</option>
-                            <option value="Boleto">Boleto</option>
-                            <option value="Cartão">Cartão de Crédito</option>
-                            <option value="Transferência">Transferência</option>
-                        </select>
-                    </div>
                 </div>
-                <button type="submit" class="btn btn-primary btn-full mt-20"><i class="fas fa-save"></i> Guardar Saída</button>
+                <button type="submit" class="btn btn-primary btn-full mt-10"><i class="fas fa-save"></i> Guardar Saída</button>
             </form>
         </div>
     </div>
 
-    <!-- Modal Produto no Estoque -->
     <div id="modalProduto" class="modal">
         <div class="modal-content">
             <span class="close-modal" onclick="fecharModal('modalProduto')">&times;</span>
-            <h2 class="modal-title" id="titleModalProduto"><i class="fas fa-box text-accent"></i> Cadastrar Produto</h2>
+            <h2 class="modal-title"><i class="fas fa-box text-accent"></i> Produto</h2>
             <form id="formProduto" onsubmit="salvarProduto(event)">
                 <input type="hidden" id="prodId">
                 <div class="form-grid">
                     <div class="form-group">
-                        <label class="form-label" for="prodSku">Código SKU</label>
-                        <input type="text" id="prodSku" class="form-control" placeholder="Ex: PEC-001" required>
+                        <label class="form-label">SKU</label>
+                        <input type="text" id="prodSku" class="form-control" required>
                     </div>
                     <div class="form-group">
-                        <label class="form-label" for="prodCategoria">Categoria</label>
-                        <input type="text" id="prodCategoria" class="form-control" placeholder="Ex: Placas de Vídeo, Memórias" required>
+                        <label class="form-label">Categoria</label>
+                        <input type="text" id="prodCategoria" class="form-control" required>
                     </div>
                     <div class="form-group full-width">
-                        <label class="form-label" for="prodNome">Nome do Produto / Componente</label>
-                        <input type="text" id="prodNome" class="form-control" placeholder="Ex: Chip VRM Mosfet" required>
+                        <label class="form-label">Nome do Produto</label>
+                        <input type="text" id="prodNome" class="form-control" required>
                     </div>
                     <div class="form-group">
-                        <label class="form-label" for="prodQtd">Quantidade Atual</label>
-                        <input type="number" id="prodQtd" class="form-control" min="0" value="1" required>
+                        <label class="form-label">Qtd Atual</label>
+                        <input type="number" id="prodQtd" class="form-control" min="0" required>
                     </div>
                     <div class="form-group">
-                        <label class="form-label" for="prodQtdMin">Quantidade Mínima</label>
-                        <input type="number" id="prodQtdMin" class="form-control" min="0" value="5" required>
+                        <label class="form-label">Qtd Mínima</label>
+                        <input type="number" id="prodQtdMin" class="form-control" min="0" required>
                     </div>
                     <div class="form-group">
-                        <label class="form-label" for="prodPrecoCusto">Preço de Custo (R$)</label>
-                        <input type="number" step="0.01" id="prodPrecoCusto" class="form-control" placeholder="0,00" required>
+                        <label class="form-label">Preço Custo (R$)</label>
+                        <input type="number" step="0.01" id="prodPrecoCusto" class="form-control" required>
                     </div>
                     <div class="form-group">
-                        <label class="form-label" for="prodPrecoVenda">Preço de Venda (R$)</label>
-                        <input type="number" step="0.01" id="prodPrecoVenda" class="form-control" placeholder="0,00" required>
+                        <label class="form-label">Preço Venda (R$)</label>
+                        <input type="number" step="0.01" id="prodPrecoVenda" class="form-control" required>
                     </div>
                 </div>
-                <button type="submit" class="btn btn-primary btn-full mt-20"><i class="fas fa-save"></i> Guardar Produto</button>
+                <button type="submit" class="btn btn-primary btn-full mt-10"><i class="fas fa-save"></i> Guardar Produto</button>
             </form>
         </div>
     </div>
 
-    <!-- Modal Movimentação de Estoque -->
     <div id="modalMovimentacao" class="modal">
         <div class="modal-content">
             <span class="close-modal" onclick="fecharModal('modalMovimentacao')">&times;</span>
@@ -1066,24 +1035,23 @@
                 <input type="hidden" id="movProdId">
                 <p id="movItemInfo" class="mb-15 font-bold"></p>
                 <div class="form-group mb-15">
-                    <label class="form-label" for="movTipo">Tipo de Movimentação</label>
+                    <label class="form-label">Tipo</label>
                     <select id="movTipo" class="form-control">
-                        <option value="ENTRADA">Entrada (+Adicionar)</option>
-                        <option value="SAIDA">Saída (-Remover/Venda)</option>
+                        <option value="ENTRADA">Entrada (+)</option>
+                        <option value="SAIDA">Saída (-)</option>
                     </select>
                 </div>
                 <div class="form-group mb-15">
-                    <label class="form-label" for="movQtd">Quantidade</label>
+                    <label class="form-label">Quantidade</label>
                     <input type="number" id="movQtd" class="form-control" min="1" value="1" required>
                 </div>
-                <button type="submit" class="btn btn-primary btn-full"><i class="fas fa-check"></i> Confirmar Movimentação</button>
+                <button type="submit" class="btn btn-primary btn-full"><i class="fas fa-check"></i> Confirmar</button>
             </form>
         </div>
     </div>
 
-    <!-- LÓGICA JAVASCRIPT INTEGRADA -->
     <script>
-        // Função para obter data formatada do mês atual YYYY-MM
+        // Data formatada do mês atual YYYY-MM
         const getMesAtualStr = () => {
             const d = new Date();
             const y = d.getFullYear();
@@ -1093,9 +1061,8 @@
 
         const mesAtual = getMesAtualStr();
 
-        // Dados de Demonstração com datas do mês corrente
         let contasPagar = JSON.parse(localStorage.getItem('ricpower_pagar')) || [
-            { id: '1', vencimento: `${mesAtual}-15`, fornecedor: 'RGE Energia', descricao: 'Conta de Energia Elétrica', valor: 1000.00, categoria: 'Custos Fixos', status: 'PAGO', dataPagamento: `${mesAtual}-15`, tipoPagamento: 'PIX' },
+            { id: '1', vencimento: `${mesAtual}-15`, fornecedor: 'RGE Energia', descricao: 'Energia Elétrica', valor: 1000.00, categoria: 'Custos Fixos', status: 'PAGO', dataPagamento: `${mesAtual}-15`, tipoPagamento: 'PIX' },
             { id: '2', vencimento: `${mesAtual}-21`, fornecedor: 'AliExpress', descricao: 'Lote de Placas e Chips', valor: 850.00, categoria: 'Peças Novas', status: 'PENDENTE', dataPagamento: '', tipoPagamento: 'PIX' },
             { id: '3', vencimento: `${mesAtual}-28`, fornecedor: 'Imobiliária', descricao: 'Aluguel do Galpão', valor: 1270.00, categoria: 'Custos Fixos', status: 'PENDENTE', dataPagamento: '', tipoPagamento: 'Transferência' }
         ];
@@ -1103,13 +1070,13 @@
         let contasReceber = JSON.parse(localStorage.getItem('ricpower_receber')) || [
             { id: '1', vencimento: `${mesAtual}-18`, cliente: 'Gabi', descricao: 'Reparo de GPU RTX 3080', valor: 450.00, categoria: 'Reparos', status: 'PAGO', dataPagamento: `${mesAtual}-18`, tipoPagamento: 'PIX' },
             { id: '2', vencimento: `${mesAtual}-20`, cliente: 'Yuri', descricao: 'Troca de Telas e Peças', valor: 280.00, categoria: 'Peças Novas', status: 'PENDENTE', dataPagamento: '', tipoPagamento: 'PIX' },
-            { id: '3', vencimento: `${mesAtual}-25`, cliente: 'Oficina Central', descricao: 'Lote de Serviços de Solda', valor: 7720.00, categoria: 'Reparos', status: 'PENDENTE', dataPagamento: '', tipoPagamento: 'Cartão' }
+            { id: '3', vencimento: `${mesAtual}-25`, cliente: 'Oficina Central', descricao: 'Serviços de Solda', valor: 7720.00, categoria: 'Reparos', status: 'PENDENTE', dataPagamento: '', tipoPagamento: 'Cartão' }
         ];
 
         let estoque = JSON.parse(localStorage.getItem('ricpower_estoque')) || [
             { id: '1', sku: 'PEC-001', nome: 'Chip Mosfet VRM 40V', categoria: 'Componentes', qtd: 14, qtdMin: 10, precoCusto: 12.50, precoVenda: 45.00 },
             { id: '2', sku: 'PEC-002', nome: 'Pasta Térmica Alta Condutividade', categoria: 'Insumos', qtd: 3, qtdMin: 5, precoCusto: 35.00, precoVenda: 90.00 },
-            { id: '3', sku: 'PEC-003', nome: 'Capacitor Sólido 16V 470uF', categoria: 'Componentes', qtd: 0, qtdMin: 20, precoCusto: 2.10, precoVenda: 10.00 }
+            { id: '3', sku: 'PEC-003', nome: 'Capacitor Sólido 16V', categoria: 'Componentes', qtd: 0, qtdMin: 20, precoCusto: 2.10, precoVenda: 10.00 }
         ];
 
         let filtroDataAtivo = 'Este Mês';
@@ -1135,7 +1102,22 @@
             return `${partes[2]}/${partes[1]}/${partes[0]}`;
         }
 
-        /* 1. LOGIN & SESSÃO */
+        /* TOGGLE MENU LATERAL MÓVEL */
+        function toggleSidebar() {
+            const sidebar = document.getElementById('mainSidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            if (sidebar) sidebar.classList.toggle('active');
+            if (overlay) overlay.classList.toggle('active');
+        }
+
+        function fecharSidebarMobile() {
+            const sidebar = document.getElementById('mainSidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            if (sidebar) sidebar.classList.remove('active');
+            if (overlay) overlay.classList.remove('active');
+        }
+
+        /* LOGIN */
         function realizarLogin(event) {
             event.preventDefault();
             const email = document.getElementById('loginEmail').value.trim();
@@ -1148,7 +1130,7 @@
                 iniciarAplicacao();
             } else {
                 alertBox.className = 'login-alert error';
-                alertBox.innerText = 'E-mail ou senha incorretos! Utilize as credenciais fixas.';
+                alertBox.innerText = 'Credenciais incorretas!';
                 alertBox.style.display = 'block';
             }
         }
@@ -1178,11 +1160,10 @@
             document.getElementById('loginScreen').style.display = 'none';
             document.getElementById('appScreen').style.display = 'flex';
             document.getElementById('userEmailDisplay').innerText = localStorage.getItem('ricpower_logged_user') || 'admin@richard.com';
-            
             renderizarTudo();
         }
 
-        /* 2. NAVEGAÇÃO DE ABAS BLINDADA */
+        /* ABAS */
         function showTab(tabId, navElement) {
             document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
             document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
@@ -1202,19 +1183,20 @@
             }
 
             const titles = {
-                'dashboard': 'Visão Geral Financeira',
-                'pagar': 'Contas a Pagar (Saídas)',
-                'receber': 'Contas a Receber (Entradas)',
-                'estoque': 'Controle de Estoque (Peças)',
-                'dre': 'Demonstrativo do Resultado do Exercício (DRE)',
-                'extensao': 'Extensão Chrome & Integrações'
+                'dashboard': 'Visão Geral',
+                'pagar': 'Contas a Pagar',
+                'receber': 'Contas a Receber',
+                'estoque': 'Estoque (Peças)',
+                'dre': 'DRE',
+                'extensao': 'Injetor Rápido'
             };
             document.getElementById('pageTitle').innerText = titles[tabId] || 'RICPOWER';
             
+            fecharSidebarMobile();
             renderizarTudo();
         }
 
-        /* 3. FILTRO DE PERÍODO */
+        /* FILTRO DE PERÍODO */
         function toggleDateFilter() {
             document.getElementById('dateFilterDropdown').classList.toggle('show');
         }
@@ -1237,11 +1219,7 @@
             const dtFim = document.getElementById('dataFimFiltro').value;
 
             if (!dtInicio || !dtFim) {
-                alert("Por favor, selecione as datas de início e fim.");
-                return;
-            }
-            if (dtInicio > dtFim) {
-                alert("A data inicial não pode ser maior que a data final.");
+                alert("Selecione as datas inicial e final.");
                 return;
             }
 
@@ -1249,11 +1227,8 @@
             dataInicioCustom = dtInicio;
             dataFimCustom = dtFim;
 
-            const textoFiltro = `${formatarDataBR(dtInicio)} até ${formatarDataBR(dtFim)}`;
-            document.getElementById('currentPeriodText').innerText = textoFiltro;
-            document.querySelectorAll('.filter-option').forEach(el => el.classList.remove('active-filter'));
+            document.getElementById('currentPeriodText').innerText = `${formatarDataBR(dtInicio)} a ${formatarDataBR(dtFim)}`;
             document.getElementById('dateFilterDropdown').classList.remove('show');
-
             renderizarTudo();
         }
 
@@ -1298,7 +1273,7 @@
             });
         }
 
-        /* 4. RENDERIZAÇÃO GERAL E DASHBOARD */
+        /* RENDERIZADORES */
         function renderizarTudo() {
             renderizarDashboard();
             renderizarContasPagar();
@@ -1314,7 +1289,6 @@
             const totalReceber = receberFiltrado.reduce((acc, c) => acc + (parseFloat(c.valor) || 0), 0);
             const totalPagar = pagarFiltrado.reduce((acc, c) => acc + (parseFloat(c.valor) || 0), 0);
             const saldoPrevisto = totalReceber - totalPagar;
-
             const patrimonioEstoque = estoque.reduce((acc, p) => acc + ((parseFloat(p.qtd) || 0) * (parseFloat(p.precoCusto) || 0)), 0);
 
             document.getElementById('cardReceberLabel').innerText = `A Receber (${filtroDataAtivo})`;
@@ -1350,15 +1324,15 @@
             if (painelAlertas) {
                 const itensCriticos = estoque.filter(p => p.qtd <= p.qtdMin);
                 if (itensCriticos.length === 0) {
-                    painelAlertas.innerHTML = `<p class="text-success font-bold"><i class="fas fa-check-circle"></i> Todos os produtos com estoque saudável!</p>`;
+                    painelAlertas.innerHTML = `<p class="text-success font-bold"><i class="fas fa-check-circle"></i> Estoque saudável!</p>`;
                 } else {
                     painelAlertas.innerHTML = itensCriticos.map(p => `
                         <div class="alert-item">
                             <div>
                                 <strong>${p.sku} - ${p.nome}</strong><br>
-                                <small>Qtd Atual: <b class="text-danger">${p.qtd}</b> / Mínima: ${p.qtdMin}</small>
+                                <small>Qtd: <b class="text-danger">${p.qtd}</b> / Mín: ${p.qtdMin}</small>
                             </div>
-                            <span class="badge badge-danger">${p.qtd === 0 ? 'ESGOTADO' : 'BAIXO'}</span>
+                            <span class="badge badge-danger">${p.qtd === 0 ? 'ZERO' : 'BAIXO'}</span>
                         </div>
                     `).join('');
                 }
@@ -1381,9 +1355,9 @@
                     fluxoCaixaChartInstance = new Chart(ctxFluxo.getContext('2d'), {
                         type: 'bar',
                         data: {
-                            labels: ['Entradas (A Receber)', 'Saídas (A Pagar)'],
+                            labels: ['Entradas', 'Saídas'],
                             datasets: [{
-                                label: 'Valor Total (R$)',
+                                label: 'Valor (R$)',
                                 data: [recTotal, pagTotal],
                                 backgroundColor: ['#2ecc71', '#e74c3c'],
                                 borderRadius: 6
@@ -1419,11 +1393,10 @@
                     });
                 }
             } catch (err) {
-                console.warn("Erro na renderização dos gráficos:", err);
+                console.warn("Erro ao carregar gráficos:", err);
             }
         }
 
-        /* 5. TABELAS DE PAGAR E RECEBER */
         function renderizarContasPagar() {
             const tbody = document.getElementById('tableContasPagar');
             if (!tbody) return;
@@ -1433,15 +1406,11 @@
 
             let filtradas = filtrarPorPeriodo(contasPagar);
 
-            if (termo) {
-                filtradas = filtradas.filter(p => p.fornecedor.toLowerCase().includes(termo) || p.descricao.toLowerCase().includes(termo));
-            }
-            if (statusFiltro !== 'todos') {
-                filtradas = filtradas.filter(p => p.status === statusFiltro);
-            }
+            if (termo) filtradas = filtradas.filter(p => p.fornecedor.toLowerCase().includes(termo) || p.descricao.toLowerCase().includes(termo));
+            if (statusFiltro !== 'todos') filtradas = filtradas.filter(p => p.status === statusFiltro);
 
             if (filtradas.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="8" class="text-center">Nenhuma conta a pagar encontrada.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="8" class="text-center">Nenhuma conta encontrada.</td></tr>`;
                 return;
             }
 
@@ -1472,15 +1441,11 @@
 
             let filtradas = filtrarPorPeriodo(contasReceber);
 
-            if (termo) {
-                filtradas = filtradas.filter(r => r.cliente.toLowerCase().includes(termo) || r.descricao.toLowerCase().includes(termo));
-            }
-            if (statusFiltro !== 'todos') {
-                filtradas = filtradas.filter(r => r.status === statusFiltro);
-            }
+            if (termo) filtradas = filtradas.filter(r => r.cliente.toLowerCase().includes(termo) || r.descricao.toLowerCase().includes(termo));
+            if (statusFiltro !== 'todos') filtradas = filtradas.filter(r => r.status === statusFiltro);
 
             if (filtradas.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="8" class="text-center">Nenhuma conta a receber encontrada.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="8" class="text-center">Nenhuma conta encontrada.</td></tr>`;
                 return;
             }
 
@@ -1502,7 +1467,6 @@
             `).join('');
         }
 
-        /* 6. AÇÕES DE CADASTRO E EDIÇÃO */
         function salvarContaPagar(event) {
             event.preventDefault();
             const id = document.getElementById('pagId').value;
@@ -1514,8 +1478,8 @@
                 vencimento: document.getElementById('pagVencimento').value,
                 categoria: document.getElementById('pagCategoria').value,
                 status: document.getElementById('pagStatus').value,
-                dataPagamento: document.getElementById('pagDataPagamento').value,
-                tipoPagamento: document.getElementById('pagTipoPagamento').value
+                dataPagamento: '',
+                tipoPagamento: 'PIX'
             };
 
             if (id) {
@@ -1551,14 +1515,12 @@
             document.getElementById('pagVencimento').value = p.vencimento;
             document.getElementById('pagCategoria').value = p.categoria;
             document.getElementById('pagStatus').value = p.status;
-            document.getElementById('pagDataPagamento').value = p.dataPagamento || '';
-            document.getElementById('pagTipoPagamento').value = p.tipoPagamento || 'PIX';
 
             abrirModal('modalSaida');
         }
 
         function excluirPagar(id) {
-            if (confirm('Deseja realmente excluir esta conta a pagar?')) {
+            if (confirm('Excluir esta conta a pagar?')) {
                 contasPagar = contasPagar.filter(p => p.id !== id);
                 salvarDadosLocal();
                 renderizarTudo();
@@ -1576,8 +1538,8 @@
                 vencimento: document.getElementById('entVencimento').value,
                 categoria: document.getElementById('entCategoria').value,
                 status: document.getElementById('entStatus').value,
-                dataPagamento: document.getElementById('entDataPagamento').value,
-                tipoPagamento: document.getElementById('entTipoPagamento').value
+                dataPagamento: '',
+                tipoPagamento: 'PIX'
             };
 
             if (id) {
@@ -1613,21 +1575,18 @@
             document.getElementById('entVencimento').value = r.vencimento;
             document.getElementById('entCategoria').value = r.categoria;
             document.getElementById('entStatus').value = r.status;
-            document.getElementById('entDataPagamento').value = r.dataPagamento || '';
-            document.getElementById('entTipoPagamento').value = r.tipoPagamento || 'PIX';
 
             abrirModal('modalEntrada');
         }
 
         function excluirReceber(id) {
-            if (confirm('Deseja realmente excluir esta conta a receber?')) {
+            if (confirm('Excluir esta conta a receber?')) {
                 contasReceber = contasReceber.filter(r => r.id !== id);
                 salvarDadosLocal();
                 renderizarTudo();
             }
         }
 
-        /* 7. CONTROLE DE ESTOQUE */
         function renderizarEstoque() {
             const tbody = document.getElementById('tableEstoque');
             if (!tbody) return;
@@ -1637,15 +1596,9 @@
 
             let filtrados = [...estoque];
 
-            if (termo) {
-                filtrados = filtrados.filter(p => p.sku.toLowerCase().includes(termo) || p.nome.toLowerCase().includes(termo));
-            }
-
-            if (filtroAlerta === 'alerta') {
-                filtrados = filtrados.filter(p => p.qtd <= p.qtdMin && p.qtd > 0);
-            } else if (filtroAlerta === 'zerado') {
-                filtrados = filtrados.filter(p => p.qtd === 0);
-            }
+            if (termo) filtrados = filtrados.filter(p => p.sku.toLowerCase().includes(termo) || p.nome.toLowerCase().includes(termo));
+            if (filtroAlerta === 'alerta') filtrados = filtrados.filter(p => p.qtd <= p.qtdMin && p.qtd > 0);
+            else if (filtroAlerta === 'zerado') filtrados = filtrados.filter(p => p.qtd === 0);
 
             const patrimonioTotal = estoque.reduce((acc, p) => acc + (p.qtd * p.precoCusto), 0);
             const totalCriticos = estoque.filter(p => p.qtd <= p.qtdMin).length;
@@ -1655,7 +1608,7 @@
             document.getElementById('stkTotalAlertas').innerText = totalCriticos;
 
             if (filtrados.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="10" class="text-center">Nenhum produto cadastrado no estoque.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="10" class="text-center">Sem produtos cadastrados.</td></tr>`;
                 return;
             }
 
@@ -1669,16 +1622,16 @@
                         <td><strong>${p.sku}</strong></td>
                         <td>${p.nome}</td>
                         <td><span class="category-badge">${p.categoria}</span></td>
-                        <td class="${isBaixo ? 'text-danger font-bold' : ''}">${p.qtd} ${isBaixo ? '<i class="fas fa-exclamation-circle"></i>' : ''}</td>
+                        <td class="${isBaixo ? 'text-danger font-bold' : ''}">${p.qtd}</td>
                         <td>${p.qtdMin}</td>
                         <td>${formatarMoeda(p.precoCusto)}</td>
                         <td>${formatarMoeda(p.precoVenda)}</td>
                         <td><span class="badge badge-success">+${margemLucro}%</span></td>
                         <td><strong>${formatarMoeda(totalInvestidoItem)}</strong></td>
                         <td>
-                            <button class="btn-action btn-primary" title="Movimentar (+/-)" onclick="abrirModalMovimentacao('${p.id}')"><i class="fas fa-exchange-alt"></i></button>
-                            <button class="btn-action btn-secondary" title="Editar" onclick="editarProduto('${p.id}')"><i class="fas fa-edit"></i></button>
-                            <button class="btn-action btn-danger" title="Excluir" onclick="excluirProduto('${p.id}')"><i class="fas fa-trash"></i></button>
+                            <button class="btn-action btn-primary" onclick="abrirModalMovimentacao('${p.id}')"><i class="fas fa-exchange-alt"></i></button>
+                            <button class="btn-action btn-secondary" onclick="editarProduto('${p.id}')"><i class="fas fa-edit"></i></button>
+                            <button class="btn-action btn-danger" onclick="excluirProduto('${p.id}')"><i class="fas fa-trash"></i></button>
                         </td>
                     </tr>
                 `;
@@ -1728,7 +1681,7 @@
         }
 
         function excluirProduto(id) {
-            if (confirm('Deseja realmente remover este item do estoque?')) {
+            if (confirm('Remover produto do estoque?')) {
                 estoque = estoque.filter(p => p.id !== id);
                 salvarDadosLocal();
                 renderizarTudo();
@@ -1740,7 +1693,7 @@
             if (!p) return;
 
             document.getElementById('movProdId').value = p.id;
-            document.getElementById('movItemInfo').innerText = `Item: ${p.sku} - ${p.nome} (Qtd Atual: ${p.qtd})`;
+            document.getElementById('movItemInfo').innerText = `Item: ${p.sku} - ${p.nome} (Qtd: ${p.qtd})`;
             abrirModal('modalMovimentacao');
         }
 
@@ -1753,7 +1706,7 @@
             const p = estoque.find(item => item.id === id);
             if (p) {
                 if (tipo === 'SAIDA' && p.qtd < qtd) {
-                    alert('Quantidade insuficiente em estoque para esta saída!');
+                    alert('Quantidade insuficiente em estoque!');
                     return;
                 }
                 p.qtd = tipo === 'ENTRADA' ? p.qtd + qtd : p.qtd - qtd;
@@ -1763,7 +1716,6 @@
             }
         }
 
-        /* 8. DEMONSTRATIVO DRE */
         function renderizarDRE() {
             document.getElementById('drePeriodoText').innerText = filtroDataAtivo;
 
@@ -1775,49 +1727,25 @@
             const lucroBruto = receitaBruta - cmv;
             const despesasOp = pagarFiltrado.filter(p => p.categoria !== 'Peças Novas').reduce((acc, c) => acc + (parseFloat(c.valor) || 0), 0);
             const resultadoLiquido = lucroBruto - despesasOp;
-            const margemLiquida = receitaBruta > 0 ? ((resultadoLiquido / receitaBruta) * 100).toFixed(1) : 0;
 
             document.getElementById('dreReceitaBruta').innerText = formatarMoeda(receitaBruta);
             document.getElementById('dreCMV').innerText = `- ${formatarMoeda(cmv)}`;
             document.getElementById('dreLucroBruto').innerText = formatarMoeda(lucroBruto);
             document.getElementById('dreDespesasOp').innerText = `- ${formatarMoeda(despesasOp)}`;
             document.getElementById('dreResultadoLiquido').innerText = formatarMoeda(resultadoLiquido);
-            document.getElementById('dreMargemLiquida').innerText = `${margemLiquida}%`;
         }
 
-        /* 9. EXTENSÃO CHROME & BACKUP */
         function lancamentoRapidoExtensao() {
             const tipo = document.getElementById('extTipo').value;
             const pessoa = document.getElementById('extPessoa').value.trim();
             const desc = document.getElementById('extDescricao').value.trim();
             const valor = parseFloat(document.getElementById('extValor').value) || 0;
-
             const hoje = new Date().toISOString().split('T')[0];
 
             if (tipo === 'RECEBER') {
-                contasReceber.push({
-                    id: Date.now().toString(),
-                    cliente: pessoa,
-                    descricao: desc,
-                    valor: valor,
-                    vencimento: hoje,
-                    categoria: 'Reparos',
-                    status: 'PENDENTE',
-                    dataPagamento: '',
-                    tipoPagamento: 'PIX'
-                });
+                contasReceber.push({ id: Date.now().toString(), cliente: pessoa, descricao: desc, valor: valor, vencimento: hoje, categoria: 'Reparos', status: 'PENDENTE', dataPagamento: '', tipoPagamento: 'PIX' });
             } else {
-                contasPagar.push({
-                    id: Date.now().toString(),
-                    fornecedor: pessoa,
-                    descricao: desc,
-                    valor: valor,
-                    vencimento: hoje,
-                    categoria: 'Custos Fixos',
-                    status: 'PENDENTE',
-                    dataPagamento: '',
-                    tipoPagamento: 'PIX'
-                });
+                contasPagar.push({ id: Date.now().toString(), fornecedor: pessoa, descricao: desc, valor: valor, vencimento: hoje, categoria: 'Custos Fixos', status: 'PENDENTE', dataPagamento: '', tipoPagamento: 'PIX' });
             }
 
             salvarDadosLocal();
@@ -1853,12 +1781,10 @@
                         estoque = data.estoque;
                         salvarDadosLocal();
                         renderizarTudo();
-                        alert('Backup restaurado com sucesso!');
-                    } else {
-                        alert('Formato de arquivo JSON inválido.');
+                        alert('Backup restaurado!');
                     }
                 } catch (err) {
-                    alert('Erro ao processar o arquivo JSON.');
+                    alert('Erro no arquivo JSON.');
                 }
             };
             reader.readAsText(file);
@@ -1868,16 +1794,11 @@
             let csvContent = "data:text/csv;charset=utf-8,";
             if (tipo === 'pagar') {
                 csvContent += "Vencimento;Fornecedor;Descrição;Valor;Categoria;Status\n";
-                contasPagar.forEach(p => {
-                    csvContent += `${p.vencimento};${p.fornecedor};${p.descricao};${p.valor};${p.categoria};${p.status}\n`;
-                });
+                contasPagar.forEach(p => csvContent += `${p.vencimento};${p.fornecedor};${p.descricao};${p.valor};${p.categoria};${p.status}\n`);
             } else {
                 csvContent += "Vencimento;Cliente;Descrição;Valor;Categoria;Status\n";
-                contasReceber.forEach(r => {
-                    csvContent += `${r.vencimento};${r.cliente};${r.descricao};${r.valor};${r.categoria};${r.status}\n`;
-                });
+                contasReceber.forEach(r => csvContent += `${r.vencimento};${r.cliente};${r.descricao};${r.valor};${r.categoria};${r.status}\n`);
             }
-
             const encodedUri = encodeURI(csvContent);
             const link = document.createElement("a");
             link.setAttribute("href", encodedUri);
@@ -1887,7 +1808,6 @@
             document.body.removeChild(link);
         }
 
-        /* 10. MODAIS HELPERS */
         function abrirModal(modalId) {
             const modal = document.getElementById(modalId);
             if (modal) modal.style.display = 'flex';
@@ -1926,7 +1846,6 @@
             }
         };
 
-        // Inicializar aplicação ao carregar a página
         document.addEventListener('DOMContentLoaded', () => {
             verificarSessao();
         });
