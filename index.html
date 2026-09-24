@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RICPOWER - Gestão Financeira & Estoque</title>
 
-    <!-- Favicon personalizado utilizando a sua imagem icone.png -->
+    <!-- Favicon da Aba do Navegador -->
     <link rel="icon" type="image/png" href="icone.png">
-    
+
     <!-- Chart.js & FontAwesome -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
@@ -57,7 +57,7 @@
         .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; flex-wrap: wrap; gap: 15px; }
         .header h1 { font-size: 26px; color: var(--primary-color); font-weight: 700; }
 
-        /* FILTRO DE PERÍODO */
+        /* FILTRO DE PERÍODO GLOBAL */
         .modern-filter-container { position: relative; display: inline-block; }
         .modern-filter-btn { background-color: var(--primary-color); color: var(--accent-color); border: 2px solid var(--primary-color); padding: 10px 18px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         .modern-filter-dropdown { display: none; position: absolute; top: 115%; right: 0; background-color: white; min-width: 280px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); border-radius: 10px; z-index: 1000; border: 1px solid #eee; overflow: hidden; }
@@ -73,6 +73,11 @@
         .btn-filter { flex: 1; padding: 8px; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; font-size: 12px; }
         .btn-apply { background-color: var(--accent-color); color: var(--primary-color); }
         .btn-clear { background-color: #eee; color: #555; }
+
+        /* FILTROS INTERNOS DAS TABELAS */
+        .filter-bar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+        .filter-input { padding: 8px 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 13px; outline: none; background-color: #fff; }
+        .filter-input:focus { border-color: var(--accent-color); }
 
         /* CARDS KPI DE DESTAQUE */
         .cards-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 18px; margin-bottom: 25px; }
@@ -92,7 +97,7 @@
         .dashboard-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; margin-bottom: 25px; }
         @media (max-width: 1024px) { .dashboard-grid { grid-template-columns: 1fr; } }
         .panel { background-color: var(--card-bg); padding: 22px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.04); margin-bottom: 20px; }
-        .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; padding-bottom: 12px; border-bottom: 1px solid #eee; flex-wrap: wrap; gap: 10px; }
+        .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; padding-bottom: 12px; border-bottom: 1px solid #eee; flex-wrap: wrap; gap: 12px; }
         .panel-title { font-size: 17px; color: var(--primary-color); font-weight: 700; }
 
         /* TABELAS */
@@ -272,7 +277,22 @@
             <div class="panel">
                 <div class="panel-header">
                     <h3 class="panel-title">Gestão de Contas a Pagar</h3>
-                    <button class="btn btn-danger" onclick="abrirModalPagar()"><i class="fas fa-plus"></i> Nova Conta a Pagar</button>
+                    <div class="filter-bar">
+                        <input type="text" id="buscaPagar" class="filter-input" placeholder="🔍 Buscar fornecedor..." oninput="carregarDados()">
+                        <select id="filtroStatusPagar" class="filter-input" onchange="carregarDados()">
+                            <option value="TODOS">Todos os Status</option>
+                            <option value="PENDENTE">Pendente</option>
+                            <option value="PAGO">Pago</option>
+                            <option value="ATRASADO">Atrasado</option>
+                        </select>
+                        <select id="filtroCCPagar" class="filter-input" onchange="carregarDados()">
+                            <option value="TODOS">Todos os C. Custos</option>
+                            <option value="PESSOAL">Pessoal</option>
+                            <option value="ADMINISTRATIVO">Administrativo</option>
+                            <option value="PEÇAS">Peças</option>
+                        </select>
+                        <button class="btn btn-danger" onclick="abrirModalPagar()"><i class="fas fa-plus"></i> Nova Conta a Pagar</button>
+                    </div>
                 </div>
                 <div class="table-responsive">
                     <table>
@@ -288,7 +308,21 @@
             <div class="panel">
                 <div class="panel-header">
                     <h3 class="panel-title">Gestão de Contas a Receber</h3>
-                    <button class="btn btn-success" onclick="abrirModalReceber()"><i class="fas fa-plus"></i> Nova Conta a Receber</button>
+                    <div class="filter-bar">
+                        <input type="text" id="buscaReceber" class="filter-input" placeholder="🔍 Buscar cliente..." oninput="carregarDados()">
+                        <select id="filtroStatusReceber" class="filter-input" onchange="carregarDados()">
+                            <option value="TODOS">Todos os Status</option>
+                            <option value="PENDENTE">Pendente</option>
+                            <option value="PAGO">Pago</option>
+                            <option value="ATRASADO">Atrasado</option>
+                        </select>
+                        <select id="filtroCCReceber" class="filter-input" onchange="carregarDados()">
+                            <option value="TODOS">Todos os C. Custos</option>
+                            <option value="SERVIÇOS">Serviços</option>
+                            <option value="VENDAS">Vendas</option>
+                        </select>
+                        <button class="btn btn-success" onclick="abrirModalReceber()"><i class="fas fa-plus"></i> Nova Conta a Receber</button>
+                    </div>
                 </div>
                 <div class="table-responsive">
                     <table>
@@ -304,7 +338,15 @@
             <div class="panel">
                 <div class="panel-header">
                     <h3 class="panel-title">Controle de Peças e Produtos</h3>
-                    <button class="btn btn-primary" onclick="abrirModalEstoque()"><i class="fas fa-box-open"></i> Cadastrar Peça</button>
+                    <div class="filter-bar">
+                        <input type="text" id="buscaEstoque" class="filter-input" placeholder="🔍 Buscar peça / SKU..." oninput="carregarDados()">
+                        <select id="filtroStatusEstoque" class="filter-input" onchange="carregarDados()">
+                            <option value="TODOS">Todos os Níveis</option>
+                            <option value="BAIXO">Estoque Baixo / Crítico</option>
+                            <option value="NORMAL">Estoque Normal (OK)</option>
+                        </select>
+                        <button class="btn btn-primary" onclick="abrirModalEstoque()"><i class="fas fa-box-open"></i> Cadastrar Peça</button>
+                    </div>
                 </div>
                 <div class="table-responsive">
                     <table>
@@ -442,7 +484,7 @@
         </div>
     </div>
 
-    <!-- SCRIPT DE INTELIGÊNCIA BANCÁRIA, AÇÕES E BACKUP -->
+    <!-- SCRIPT DE INTELIGÊNCIA BANCÁRIA, AÇÕES E FILTROS DADOS -->
     <script>
         // ESTADO GLOBAL DA APLICAÇÃO
         let dbPagar = JSON.parse(localStorage.getItem('ric_pagar')) || [
@@ -551,10 +593,22 @@
                 `;
             });
 
-            // Contas a Pagar
+            // Contas a Pagar com Filtros
+            let buscaP = (document.getElementById('buscaPagar')?.value || '').toLowerCase();
+            let statusP = document.getElementById('filtroStatusPagar')?.value || 'TODOS';
+            let ccP = document.getElementById('filtroCCPagar')?.value || 'TODOS';
+
             let tbP = document.getElementById('tbPagar');
             tbP.innerHTML = '';
-            dbPagar.forEach(item => {
+            
+            let pagarFiltrado = dbPagar.filter(item => {
+                let matchBusca = (item.fornecedor || '').toLowerCase().includes(buscaP) || (item.desc || '').toLowerCase().includes(buscaP);
+                let matchStatus = statusP === 'TODOS' || item.status === statusP;
+                let matchCC = ccP === 'TODOS' || item.cc === ccP;
+                return matchBusca && matchStatus && matchCC;
+            });
+
+            pagarFiltrado.forEach(item => {
                 tbP.innerHTML += `
                     <tr>
                         <td>${item.venc}</td>
@@ -562,7 +616,7 @@
                         <td>${item.desc}</td>
                         <td><strong>${fmt(Number(item.valor))}</strong></td>
                         <td><span class="status-badge ${item.status.toLowerCase()}">${item.status}</span></td>
-                        <td>${item.cc}</td>
+                        <td>${item.cc || '-'}</td>
                         <td>
                             <div class="action-btns">
                                 <button class="btn ${item.status === 'PAGO' ? 'btn-warning' : 'btn-success'} btn-sm" onclick="alternarStatus(${item.id}, true)">
@@ -576,10 +630,22 @@
                 `;
             });
 
-            // Contas a Receber
+            // Contas a Receber com Filtros
+            let buscaR = (document.getElementById('buscaReceber')?.value || '').toLowerCase();
+            let statusR = document.getElementById('filtroStatusReceber')?.value || 'TODOS';
+            let ccR = document.getElementById('filtroCCReceber')?.value || 'TODOS';
+
             let tbR = document.getElementById('tbReceber');
             tbR.innerHTML = '';
-            dbReceber.forEach(item => {
+
+            let receberFiltrado = dbReceber.filter(item => {
+                let matchBusca = (item.cliente || '').toLowerCase().includes(buscaR) || (item.desc || '').toLowerCase().includes(buscaR);
+                let matchStatus = statusR === 'TODOS' || item.status === statusR;
+                let matchCC = ccR === 'TODOS' || item.cc === ccR;
+                return matchBusca && matchStatus && matchCC;
+            });
+
+            receberFiltrado.forEach(item => {
                 tbR.innerHTML += `
                     <tr>
                         <td>${item.venc}</td>
@@ -587,7 +653,7 @@
                         <td>${item.desc}</td>
                         <td><strong>${fmt(Number(item.valor))}</strong></td>
                         <td><span class="status-badge ${item.status.toLowerCase()}">${item.status}</span></td>
-                        <td>${item.cc}</td>
+                        <td>${item.cc || '-'}</td>
                         <td>
                             <div class="action-btns">
                                 <button class="btn ${item.status === 'PAGO' ? 'btn-warning' : 'btn-success'} btn-sm" onclick="alternarStatus(${item.id}, false)">
@@ -601,14 +667,26 @@
                 `;
             });
 
-            // Estoque
+            // Estoque com Filtros
+            let buscaE = (document.getElementById('buscaEstoque')?.value || '').toLowerCase();
+            let statusE = document.getElementById('filtroStatusEstoque')?.value || 'TODOS';
+
             let tbE = document.getElementById('tbEstoque');
             tbE.innerHTML = '';
-            dbEstoque.forEach(item => {
+
+            let estoqueFiltrado = dbEstoque.filter(item => {
+                let matchBusca = (item.nome || '').toLowerCase().includes(buscaE) || (item.sku || '').toLowerCase().includes(buscaE);
+                let isBaixo = Number(item.qtd) <= Number(item.min);
+                let matchStatus = statusE === 'TODOS' || (statusE === 'BAIXO' && isBaixo) || (statusE === 'NORMAL' && !isBaixo);
+                return matchBusca && matchStatus;
+            });
+
+            estoqueFiltrado.forEach(item => {
+                let isBaixo = Number(item.qtd) <= Number(item.min);
                 tbE.innerHTML += `
                     <tr>
                         <td>${item.sku}</td>
-                        <td>${item.nome}</td>
+                        <td>${item.nome} ${isBaixo ? '<span class="status-badge atrasado">Estoque Baixo</span>' : ''}</td>
                         <td>${item.cat || 'Peças'}</td>
                         <td><strong>${item.qtd}</strong></td>
                         <td>${item.min}</td>
