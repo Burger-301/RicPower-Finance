@@ -335,7 +335,7 @@ function renderizarGraficosSeguro(receberList, pagarList) {
     }
 }
 
-/* 5. TABELA DE CONTAS A PAGAR */
+/* 5. TABELAS DE PAGAR E RECEBER */
 function renderizarContasPagar() {
     const tbody = document.getElementById('tableContasPagar');
     if (!tbody) return;
@@ -414,7 +414,7 @@ function renderizarContasReceber() {
     `).join('');
 }
 
-/* 6. SALVAR E MANTÊ-LOS VISÍVEIS */
+/* 6. SALVAR SAÍDA E ENTRADA E RESETAR FILTROS DE STATUS PARA "TODOS" */
 function salvarContaPagar(event) {
     if (event) event.preventDefault();
     const id = document.getElementById('pagId').value;
@@ -437,7 +437,14 @@ function salvarContaPagar(event) {
         contasPagar.push(conta);
     }
 
-    // Se a data for de outro mês, muda o filtro para 'Todos os Registros' para o usuário visualizar
+    // Reseta o seletor de status para "todos" e limpa a busca por texto
+    const filterStatusP = document.getElementById('filterStatusPagar');
+    if (filterStatusP) filterStatusP.value = 'todos';
+
+    const searchP = document.getElementById('searchPagar');
+    if (searchP) searchP.value = '';
+
+    // Se a data for de outro mês, muda o filtro de período para 'Todos os Registros'
     const dtItem = new Date(conta.vencimento + 'T00:00:00');
     const agora = new Date();
     if (filtroDataAtivo === 'Este Mês' && (dtItem.getFullYear() !== agora.getFullYear() || dtItem.getMonth() !== agora.getMonth())) {
@@ -446,14 +453,54 @@ function salvarContaPagar(event) {
         if (txtEl) txtEl.innerText = 'Todos os Registros';
     }
 
-    // Limpa busca para garantir que apareça na tabela
-    const searchP = document.getElementById('searchPagar');
-    if (searchP) searchP.value = '';
-
     salvarDadosLocal();
     fecharModal('modalSaida');
     renderizarTudo();
     alert('Saída (Conta a Pagar) salva com sucesso!');
+}
+
+function salvarContaReceber(event) {
+    if (event) event.preventDefault();
+    const id = document.getElementById('entId').value;
+    const conta = {
+        id: id || Date.now().toString(),
+        cliente: document.getElementById('entCliente').value.trim(),
+        descricao: document.getElementById('entDescricao').value.trim(),
+        valor: parseFloat(document.getElementById('entValor').value) || 0,
+        vencimento: document.getElementById('entVencimento').value,
+        categoria: document.getElementById('entCategoria').value,
+        status: document.getElementById('entStatus').value,
+        dataPagamento: document.getElementById('entDataPagamento').value,
+        tipoPagamento: document.getElementById('entTipoPagamento').value
+    };
+
+    if (id) {
+        const idx = contasReceber.findIndex(r => r.id === id);
+        if (idx !== -1) contasReceber[idx] = conta;
+    } else {
+        contasReceber.push(conta);
+    }
+
+    // Reseta o seletor de status para "todos" e limpa a busca por texto ao guardar entrada
+    const filterStatusR = document.getElementById('filterStatusReceber');
+    if (filterStatusR) filterStatusR.value = 'todos';
+
+    const searchR = document.getElementById('searchReceber');
+    if (searchR) searchR.value = '';
+
+    // Se a data for de outro mês, muda o filtro de período para 'Todos os Registros'
+    const dtItem = new Date(conta.vencimento + 'T00:00:00');
+    const agora = new Date();
+    if (filtroDataAtivo === 'Este Mês' && (dtItem.getFullYear() !== agora.getFullYear() || dtItem.getMonth() !== agora.getMonth())) {
+        filtroDataAtivo = 'Todos os Registros';
+        const txtEl = document.getElementById('currentPeriodText');
+        if (txtEl) txtEl.innerText = 'Todos os Registros';
+    }
+
+    salvarDadosLocal();
+    fecharModal('modalEntrada');
+    renderizarTudo();
+    alert('Entrada (Conta a Receber) salva com sucesso!');
 }
 
 function darBaixaPagar(id) {
@@ -489,45 +536,6 @@ function excluirPagar(id) {
         salvarDadosLocal();
         renderizarTudo();
     }
-}
-
-function salvarContaReceber(event) {
-    if (event) event.preventDefault();
-    const id = document.getElementById('entId').value;
-    const conta = {
-        id: id || Date.now().toString(),
-        cliente: document.getElementById('entCliente').value.trim(),
-        descricao: document.getElementById('entDescricao').value.trim(),
-        valor: parseFloat(document.getElementById('entValor').value) || 0,
-        vencimento: document.getElementById('entVencimento').value,
-        categoria: document.getElementById('entCategoria').value,
-        status: document.getElementById('entStatus').value,
-        dataPagamento: document.getElementById('entDataPagamento').value,
-        tipoPagamento: document.getElementById('entTipoPagamento').value
-    };
-
-    if (id) {
-        const idx = contasReceber.findIndex(r => r.id === id);
-        if (idx !== -1) contasReceber[idx] = conta;
-    } else {
-        contasReceber.push(conta);
-    }
-
-    const dtItem = new Date(conta.vencimento + 'T00:00:00');
-    const agora = new Date();
-    if (filtroDataAtivo === 'Este Mês' && (dtItem.getFullYear() !== agora.getFullYear() || dtItem.getMonth() !== agora.getMonth())) {
-        filtroDataAtivo = 'Todos os Registros';
-        const txtEl = document.getElementById('currentPeriodText');
-        if (txtEl) txtEl.innerText = 'Todos os Registros';
-    }
-
-    const searchR = document.getElementById('searchReceber');
-    if (searchR) searchR.value = '';
-
-    salvarDadosLocal();
-    fecharModal('modalEntrada');
-    renderizarTudo();
-    alert('Entrada (Conta a Receber) salva com sucesso!');
 }
 
 function darBaixaReceber(id) {
@@ -593,7 +601,7 @@ function renderizarEstoque() {
     document.getElementById('stkTotalAlertas').innerText = totalCriticos;
 
     if (filtrados.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;">Nenhum produto cadastrado no estoque.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;">Nenum produto cadastrado no estoque.</td></tr>`;
         return;
     }
 
