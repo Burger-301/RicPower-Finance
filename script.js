@@ -974,3 +974,12 @@ window.onclick = function(event) {
 document.addEventListener('DOMContentLoaded', () => {
     verificarSessao();
 });
+// Atualiza o painel automaticamente se alterar dados noutra aba do navegador
+window.addEventListener('storage', (event) => {
+    if (['ricpower_pagar', 'ricpower_receber', 'ricpower_estoque'].includes(event.key)) {
+        contasPagar = garantirArray(JSON.parse(localStorage.getItem('ricpower_pagar')));
+        contasReceber = garantirArray(JSON.parse(localStorage.getItem('ricpower_receber')));
+        estoque = garantirArray(JSON.parse(localStorage.getItem('ricpower_estoque')));
+        renderizarTudo();
+    }
+});
