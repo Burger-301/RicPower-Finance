@@ -9,11 +9,19 @@ const firebaseConfig = {
   appId: "1:632169254200:web:776e49224d4f61bc2e05cd"
 };
 
-// Inicialização
+// Inicialização da base de dados Firebase
 if (typeof firebase !== 'undefined' && !firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
 }
 const db = (typeof firebase !== 'undefined') ? firebase.database() : null;
+
+// GARANTE QUE QUALQUER DADO (ARRAYS OU OBJETOS FIREBASE) SEJA CONVERTIDO EM ARRAY VÁLIDO
+function garantirArray(val) {
+    if (!val) return [];
+    if (Array.isArray(val)) return val.filter(item => item !== null && item !== undefined);
+    if (typeof val === 'object') return Object.values(val).filter(item => item !== null && item !== undefined);
+    return [];
+}
 
 // HELPERS DE DATA E FORMATAÇÃO
 const getMesAtualStr = () => {
@@ -25,19 +33,19 @@ const getMesAtualStr = () => {
 
 const mesAtual = getMesAtualStr();
 
-// DADOS LOCAIS DE ARMAZENAMENTO (TUDO CARREGADO POR PADRÃO)
-let contasPagar = JSON.parse(localStorage.getItem('ricpower_pagar')) || [
+// DADOS LOCAIS DE ARMAZENAMENTO E BACKUP (TUDO CARREGADO POR PADRÃO)
+let contasPagar = garantirArray(JSON.parse(localStorage.getItem('ricpower_pagar'))) || [
     { id: '1', vencimento: `${mesAtual}-15`, fornecedor: 'RGE Energia', descricao: 'Conta de Energia Elétrica', valor: 1000.00, categoria: 'Custos Fixos', status: 'PAGO', dataPagamento: `${mesAtual}-15`, tipoPagamento: 'PIX' },
     { id: '2', vencimento: `${mesAtual}-21`, fornecedor: 'AliExpress', descricao: 'Lote de Placas e Chips', valor: 850.00, categoria: 'Peças Novas', status: 'PENDENTE', dataPagamento: '', tipoPagamento: 'PIX' },
     { id: '3', vencimento: `${mesAtual}-28`, fornecedor: 'Imobiliária', descricao: 'Aluguel do Galpão', valor: 1270.00, categoria: 'Custos Fixos', status: 'PENDENTE', dataPagamento: '', tipoPagamento: 'Transferência' }
 ];
 
-let contasReceber = JSON.parse(localStorage.getItem('ricpower_receber')) || [
+let contasReceber = garantirArray(JSON.parse(localStorage.getItem('ricpower_receber'))) || [
     { id: '1', vencimento: `${mesAtual}-18`, cliente: 'Gabi', descricao: 'Reparo de GPU RTX 3080', valor: 450.00, categoria: 'Reparos', status: 'PAGO', dataPagamento: `${mesAtual}-18`, tipoPagamento: 'PIX' },
     { id: '2', vencimento: `${mesAtual}-20`, cliente: 'Yuri', descricao: 'Troca de Telas e Peças', valor: 280.00, categoria: 'Peças Novas', status: 'PENDENTE', dataPagamento: '', tipoPagamento: 'PIX' }
 ];
 
-let estoque = JSON.parse(localStorage.getItem('ricpower_estoque')) || [
+let estoque = garantirArray(JSON.parse(localStorage.getItem('ricpower_estoque'))) || [
     { id: '1', sku: 'PEC-001', nome: 'Chip Mosfet VRM 40V', categoria: 'Componentes', qtd: 14, qtdMin: 10, precoCusto: 12.50, precoVenda: 45.00 },
     { id: '2', sku: 'PEC-002', nome: 'Pasta Térmica Alta Condutividade', categoria: 'Insumos', qtd: 3, qtdMin: 5, precoCusto: 35.00, precoVenda: 90.00 }
 ];
@@ -49,7 +57,7 @@ let dataFimCustom = '';
 let fluxoCaixaChartInstance = null;
 let centroCustoChartInstance = null;
 
-// CÁLCULO DINÂMICO DE STATUS (SE A DATA PASSOU E NÃO FOI PAGO = ATRASADO)
+// CÁLCULO DINÂMICO DE STATUS
 function getStatusEfetivo(item) {
     if (item.status === 'PAGO') return 'PAGO';
     const hojeIso = new Date().toISOString().split('T')[0];
@@ -57,8 +65,12 @@ function getStatusEfetivo(item) {
     return 'PENDENTE';
 }
 
-// ARMAZENAMENTO E SINCRONIZAÇÃO NUVEM
+// GUARDA LOCALMENTE E SINCRONIZA COM A NUVEM
 function salvarDadosLocal(skipNuvem = false) {
+    contasPagar = garantirArray(contasPagar);
+    contasReceber = garantirArray(contasReceber);
+    estoque = garantirArray(estoque);
+
     localStorage.setItem('ricpower_pagar', JSON.stringify(contasPagar));
     localStorage.setItem('ricpower_receber', JSON.stringify(contasReceber));
     localStorage.setItem('ricpower_estoque', JSON.stringify(estoque));
@@ -72,14 +84,15 @@ function salvarDadosLocal(skipNuvem = false) {
     }
 }
 
+// ESCUTA EM TEMPO REAL (PC <-> TELEMÓVEL)
 function escutarSincronizacaoNuvem() {
     if (db) {
         db.ref('ricpower_dados').on('value', (snapshot) => {
             const dadosNuvem = snapshot.val();
             if (dadosNuvem) {
-                contasPagar = dadosNuvem.contasPagar || [];
-                contasReceber = dadosNuvem.contasReceber || [];
-                estoque = dadosNuvem.estoque || [];
+                contasPagar = garantirArray(dadosNuvem.contasPagar);
+                contasReceber = garantirArray(dadosNuvem.contasReceber);
+                estoque = garantirArray(dadosNuvem.estoque);
 
                 salvarDadosLocal(true);
                 renderizarTudo();
@@ -101,7 +114,7 @@ function formatarDataBR(dataIso) {
     return `${partes[2]}/${partes[1]}/${partes[0]}`;
 }
 
-/* SESSÃO DE USUÁRIO */
+/* AUTENTICAÇÃO E SESSÃO */
 function realizarLogin(event) {
     if (event) event.preventDefault();
     const email = document.getElementById('loginEmail').value.trim();
@@ -172,7 +185,7 @@ function showTab(tabId, navElement) {
     renderizarTudo();
 }
 
-/* FILTRO DE PERÍODO */
+/* FILTROS DE PERÍODO */
 function toggleDateFilter() {
     document.getElementById('dateFilterDropdown').classList.toggle('show');
 }
@@ -219,13 +232,14 @@ function limparFiltro() {
 }
 
 function filtrarPorPeriodo(lista, campoData = 'vencimento') {
-    if (filtroDataAtivo === 'Todos os Registros') return lista;
+    const listaArray = garantirArray(lista);
+    if (filtroDataAtivo === 'Todos os Registros') return listaArray;
 
     const agora = new Date();
     const anoAtual = agora.getFullYear();
     const mesAtualIndex = agora.getMonth();
 
-    return lista.filter(item => {
+    return listaArray.filter(item => {
         if (!item[campoData]) return true;
         const dataItem = new Date(item[campoData] + 'T00:00:00');
         const anoItem = dataItem.getFullYear();
@@ -269,7 +283,7 @@ function renderizarDashboard() {
     const totalPagar = pagarFiltrado.reduce((acc, c) => acc + (parseFloat(c.valor) || 0), 0);
     const saldoPrevisto = totalReceber - totalPagar;
 
-    const patrimonioEstoque = estoque.reduce((acc, p) => acc + ((parseFloat(p.qtd) || 0) * (parseFloat(p.precoCusto) || 0)), 0);
+    const patrimonioEstoque = garantirArray(estoque).reduce((acc, p) => acc + ((parseFloat(p.qtd) || 0) * (parseFloat(p.precoCusto) || 0)), 0);
 
     document.getElementById('cardReceberLabel').innerText = `A Receber (${filtroDataAtivo})`;
     document.getElementById('cardPagarLabel').innerText = `A Pagar (${filtroDataAtivo})`;
@@ -305,7 +319,7 @@ function renderizarDashboard() {
 
     const painelAlertas = document.getElementById('painelAlertasEstoque');
     if (painelAlertas) {
-        const itensCriticos = estoque.filter(p => p.qtd <= p.qtdMin);
+        const itensCriticos = garantirArray(estoque).filter(p => p.qtd <= p.qtdMin);
         if (itensCriticos.length === 0) {
             painelAlertas.innerHTML = `<p class="text-success font-bold"><i class="fas fa-check-circle"></i> Todos os produtos com estoque saudável!</p>`;
         } else {
@@ -380,7 +394,7 @@ function renderizarGraficosSeguro(receberList, pagarList) {
     }
 }
 
-/* TABELAS COM EXIBIÇÃO TOTAL E FILTROS DINÂMICOS */
+/* CONTAS A PAGAR E RECEBER (TABELAS) */
 function renderizarContasPagar() {
     const tbody = document.getElementById('tableContasPagar');
     if (!tbody) return;
@@ -398,7 +412,7 @@ function renderizarContasPagar() {
     }
 
     if (filtradas.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;">Nenhuma conta a pagar encontrada para os filtros selecionados.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;">Nenhuma conta a pagar encontrada.</td></tr>`;
         return;
     }
 
@@ -414,9 +428,9 @@ function renderizarContasPagar() {
                 <td><span class="status ${stEfetivo.toLowerCase()}">${stEfetivo}</span></td>
                 <td>${formatarDataBR(p.dataPagamento)}</td>
                 <td>
-                    ${stEfetivo !== 'PAGO' ? `<button class="btn-action btn-success" title="Dar Baixa" onclick="darBaixaPagar('${p.id}')"><i class="fas fa-check"></i> Pago</button>` : ''}
-                    <button class="btn-action btn-secondary" title="Editar" onclick="editarPagar('${p.id}')"><i class="fas fa-edit"></i></button>
-                    <button class="btn-action btn-danger" title="Excluir" onclick="excluirPagar('${p.id}')"><i class="fas fa-trash"></i></button>
+                    ${stEfetivo !== 'PAGO' ? `<button type="button" class="btn-action btn-success" title="Dar Baixa" onclick="window.darBaixaPagar('${p.id}')"><i class="fas fa-check"></i> Pago</button>` : ''}
+                    <button type="button" class="btn-action btn-secondary" title="Editar" onclick="window.editarPagar('${p.id}')"><i class="fas fa-edit"></i></button>
+                    <button type="button" class="btn-action btn-danger" title="Excluir" onclick="window.excluirPagar('${p.id}')"><i class="fas fa-trash"></i></button>
                 </td>
             </tr>
         `;
@@ -440,7 +454,7 @@ function renderizarContasReceber() {
     }
 
     if (filtradas.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;">Nenhuma conta a receber encontrada para os filtros selecionados.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;">Nenhuma conta a receber encontrada.</td></tr>`;
         return;
     }
 
@@ -456,24 +470,22 @@ function renderizarContasReceber() {
                 <td><span class="status ${stEfetivo.toLowerCase()}">${stEfetivo}</span></td>
                 <td>${formatarDataBR(r.dataPagamento)}</td>
                 <td>
-                    ${stEfetivo !== 'PAGO' ? `<button class="btn-action btn-success" title="Dar Baixa" onclick="darBaixaReceber('${r.id}')"><i class="fas fa-check"></i> Pago</button>` : ''}
-                    <button class="btn-action btn-secondary" title="Editar" onclick="editarReceber('${r.id}')"><i class="fas fa-edit"></i></button>
-                    <button class="btn-action btn-danger" title="Excluir" onclick="excluirReceber('${r.id}')"><i class="fas fa-trash"></i></button>
+                    ${stEfetivo !== 'PAGO' ? `<button type="button" class="btn-action btn-success" title="Dar Baixa" onclick="window.darBaixaReceber('${r.id}')"><i class="fas fa-check"></i> Pago</button>` : ''}
+                    <button type="button" class="btn-action btn-secondary" title="Editar" onclick="window.editarReceber('${r.id}')"><i class="fas fa-edit"></i></button>
+                    <button type="button" class="btn-action btn-danger" title="Excluir" onclick="window.excluirReceber('${r.id}')"><i class="fas fa-trash"></i></button>
                 </td>
             </tr>
         `;
     }).join('');
 }
 
-/* OPERAÇÕES DE BAIXA, EDIÇÃO E EXCLUSÃO */
+/* DAR BAIXA INSTANTÂNEA AO CLICAR */
 function darBaixaPagar(id) {
+    contasPagar = garantirArray(contasPagar);
     const item = contasPagar.find(p => String(p.id) === String(id));
     if (item) {
         item.status = 'PAGO';
         item.dataPagamento = new Date().toISOString().split('T')[0];
-
-        const filterStatusP = document.getElementById('filterStatusPagar');
-        if (filterStatusP) filterStatusP.value = 'todos';
 
         salvarDadosLocal();
         renderizarTudo();
@@ -481,13 +493,11 @@ function darBaixaPagar(id) {
 }
 
 function darBaixaReceber(id) {
+    contasReceber = garantirArray(contasReceber);
     const item = contasReceber.find(r => String(r.id) === String(id));
     if (item) {
         item.status = 'PAGO';
         item.dataPagamento = new Date().toISOString().split('T')[0];
-
-        const filterStatusR = document.getElementById('filterStatusReceber');
-        if (filterStatusR) filterStatusR.value = 'todos';
 
         salvarDadosLocal();
         renderizarTudo();
@@ -509,15 +519,13 @@ function salvarContaPagar(event) {
         tipoPagamento: document.getElementById('pagTipoPagamento').value
     };
 
+    contasPagar = garantirArray(contasPagar);
     if (id) {
         const idx = contasPagar.findIndex(p => String(p.id) === String(id));
         if (idx !== -1) contasPagar[idx] = conta;
     } else {
         contasPagar.push(conta);
     }
-
-    const filterStatusP = document.getElementById('filterStatusPagar');
-    if (filterStatusP) filterStatusP.value = 'todos';
 
     salvarDadosLocal();
     fecharModal('modalSaida');
@@ -539,6 +547,7 @@ function salvarContaReceber(event) {
         tipoPagamento: document.getElementById('entTipoPagamento').value
     };
 
+    contasReceber = garantirArray(contasReceber);
     if (id) {
         const idx = contasReceber.findIndex(r => String(r.id) === String(id));
         if (idx !== -1) contasReceber[idx] = conta;
@@ -546,16 +555,13 @@ function salvarContaReceber(event) {
         contasReceber.push(conta);
     }
 
-    const filterStatusR = document.getElementById('filterStatusReceber');
-    if (filterStatusR) filterStatusR.value = 'todos';
-
     salvarDadosLocal();
     fecharModal('modalEntrada');
     renderizarTudo();
 }
 
 function editarPagar(id) {
-    const p = contasPagar.find(item => String(item.id) === String(id));
+    const p = garantirArray(contasPagar).find(item => String(item.id) === String(id));
     if (!p) return;
 
     document.getElementById('pagId').value = p.id;
@@ -573,14 +579,14 @@ function editarPagar(id) {
 
 function excluirPagar(id) {
     if (confirm('Deseja realmente excluir esta conta a pagar?')) {
-        contasPagar = contasPagar.filter(p => String(p.id) !== String(id));
+        contasPagar = garantirArray(contasPagar).filter(p => String(p.id) !== String(id));
         salvarDadosLocal();
         renderizarTudo();
     }
 }
 
 function editarReceber(id) {
-    const r = contasReceber.find(item => String(item.id) === String(id));
+    const r = garantirArray(contasReceber).find(item => String(item.id) === String(id));
     if (!r) return;
 
     document.getElementById('entId').value = r.id;
@@ -598,13 +604,13 @@ function editarReceber(id) {
 
 function excluirReceber(id) {
     if (confirm('Deseja realmente excluir esta conta a receber?')) {
-        contasReceber = contasReceber.filter(r => String(r.id) !== String(id));
+        contasReceber = garantirArray(contasReceber).filter(r => String(r.id) !== String(id));
         salvarDadosLocal();
         renderizarTudo();
     }
 }
 
-/* CONTROLE DE ESTOQUE (EXIBE TUDO POR PADRÃO) */
+/* CONTROLE DE ESTOQUE */
 function renderizarEstoque() {
     const tbody = document.getElementById('tableEstoque');
     if (!tbody) return;
@@ -612,7 +618,7 @@ function renderizarEstoque() {
     const termo = (document.getElementById('searchEstoque')?.value || '').toLowerCase();
     const filtroAlerta = document.getElementById('filterAlertaEstoque')?.value || 'todos';
 
-    let filtrados = [...estoque];
+    let filtrados = [...garantirArray(estoque)];
 
     if (termo) {
         filtrados = filtrados.filter(p => p.sku.toLowerCase().includes(termo) || p.nome.toLowerCase().includes(termo));
@@ -624,8 +630,8 @@ function renderizarEstoque() {
         filtrados = filtrados.filter(p => p.qtd === 0);
     }
 
-    const patrimonioTotal = estoque.reduce((acc, p) => acc + (p.qtd * p.precoCusto), 0);
-    const totalCriticos = estoque.filter(p => p.qtd <= p.qtdMin).length;
+    const patrimonioTotal = garantirArray(estoque).reduce((acc, p) => acc + (p.qtd * p.precoCusto), 0);
+    const totalCriticos = garantirArray(estoque).filter(p => p.qtd <= p.qtdMin).length;
 
     document.getElementById('stkPatrimonioTotal').innerText = formatarMoeda(patrimonioTotal);
     document.getElementById('stkTotalSkus').innerText = estoque.length;
@@ -653,9 +659,9 @@ function renderizarEstoque() {
                 <td><span class="badge badge-success">+${margemLucro}%</span></td>
                 <td><strong>${formatarMoeda(totalInvestidoItem)}</strong></td>
                 <td>
-                    <button class="btn-action btn-primary" title="Movimentar (+/-)" onclick="abrirModalMovimentacao('${p.id}')"><i class="fas fa-exchange-alt"></i></button>
-                    <button class="btn-action btn-secondary" title="Editar" onclick="editarProduto('${p.id}')"><i class="fas fa-edit"></i></button>
-                    <button class="btn-action btn-danger" title="Excluir" onclick="excluirProduto('${p.id}')"><i class="fas fa-trash"></i></button>
+                    <button type="button" class="btn-action btn-primary" title="Movimentar (+/-)" onclick="window.abrirModalMovimentacao('${p.id}')"><i class="fas fa-exchange-alt"></i></button>
+                    <button type="button" class="btn-action btn-secondary" title="Editar" onclick="window.editarProduto('${p.id}')"><i class="fas fa-edit"></i></button>
+                    <button type="button" class="btn-action btn-danger" title="Excluir" onclick="window.excluirProduto('${p.id}')"><i class="fas fa-trash"></i></button>
                 </td>
             </tr>
         `;
@@ -676,6 +682,7 @@ function salvarProduto(event) {
         precoVenda: parseFloat(document.getElementById('prodPrecoVenda').value) || 0
     };
 
+    estoque = garantirArray(estoque);
     if (id) {
         const idx = estoque.findIndex(p => String(p.id) === String(id));
         if (idx !== -1) estoque[idx] = prod;
@@ -689,7 +696,7 @@ function salvarProduto(event) {
 }
 
 function editarProduto(id) {
-    const p = estoque.find(item => String(item.id) === String(id));
+    const p = garantirArray(estoque).find(item => String(item.id) === String(id));
     if (!p) return;
 
     document.getElementById('prodId').value = p.id;
@@ -706,14 +713,14 @@ function editarProduto(id) {
 
 function excluirProduto(id) {
     if (confirm('Deseja realmente remover este item do estoque?')) {
-        estoque = estoque.filter(p => String(p.id) !== String(id));
+        estoque = garantirArray(estoque).filter(p => String(p.id) !== String(id));
         salvarDadosLocal();
         renderizarTudo();
     }
 }
 
 function abrirModalMovimentacao(id) {
-    const p = estoque.find(item => String(item.id) === String(id));
+    const p = garantirArray(estoque).find(item => String(item.id) === String(id));
     if (!p) return;
 
     document.getElementById('movProdId').value = p.id;
@@ -727,7 +734,7 @@ function salvarMovimentacaoEstoque(event) {
     const tipo = document.getElementById('movTipo').value;
     const qtd = parseInt(document.getElementById('movQtd').value) || 0;
 
-    const p = estoque.find(item => String(item.id) === String(id));
+    const p = garantirArray(estoque).find(item => String(item.id) === String(id));
     if (p) {
         if (tipo === 'SAIDA' && p.qtd < qtd) {
             alert('Quantidade insuficiente em estoque!');
@@ -825,9 +832,9 @@ function importarBackupJSON(event) {
         try {
             const data = JSON.parse(e.target.result);
             if (data.contasPagar && data.contasReceber && data.estoque) {
-                contasPagar = data.contasPagar;
-                contasReceber = data.contasReceber;
-                estoque = data.estoque;
+                contasPagar = garantirArray(data.contasPagar);
+                contasReceber = garantirArray(data.contasReceber);
+                estoque = garantirArray(data.estoque);
                 salvarDadosLocal();
                 renderizarTudo();
                 alert('Backup restaurado com sucesso!');
@@ -845,12 +852,12 @@ function exportarCSV(tipo) {
     let csvContent = "data:text/csv;charset=utf-8,";
     if (tipo === 'pagar') {
         csvContent += "Vencimento;Fornecedor;Descrição;Valor;Categoria;Status\n";
-        contasPagar.forEach(p => {
+        garantirArray(contasPagar).forEach(p => {
             csvContent += `${p.vencimento};${p.fornecedor};${p.descricao};${p.valor};${p.categoria};${p.status}\n`;
         });
     } else {
         csvContent += "Vencimento;Cliente;Descrição;Valor;Categoria;Status\n";
-        contasReceber.forEach(r => {
+        garantirArray(contasReceber).forEach(r => {
             csvContent += `${r.vencimento};${r.cliente};${r.descricao};${r.valor};${r.categoria};${r.status}\n`;
         });
     }
@@ -894,6 +901,17 @@ function abrirModalProduto() {
     document.getElementById('prodId').value = '';
     abrirModal('modalProduto');
 }
+
+/* EXPÕE AS FUNÇÕES NO ESCOPO GLOBAL WINDOW PARA O ONCLICK */
+window.darBaixaPagar = darBaixaPagar;
+window.darBaixaReceber = darBaixaReceber;
+window.editarPagar = editarPagar;
+window.excluirPagar = excluirPagar;
+window.editarReceber = editarReceber;
+window.excluirReceber = excluirReceber;
+window.editarProduto = editarProduto;
+window.excluirProduto = excluirProduto;
+window.abrirModalMovimentacao = abrirModalMovimentacao;
 
 window.onclick = function(event) {
     if (event.target.classList.contains('modal')) {
