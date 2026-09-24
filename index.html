@@ -158,7 +158,7 @@
         <div class="nav-link" onclick="trocarAba('contas-receber', this)"><i class="fas fa-arrow-up"></i> Contas a Receber</div>
         <div class="nav-link" onclick="trocarAba('estoque', this)"><i class="fas fa-boxes"></i> Estoque (Peças)</div>
         <div class="nav-link" onclick="trocarAba('dre', this)"><i class="fas fa-file-invoice-dollar"></i> Análise DRE</div>
-        <div class="nav-link" onclick="trocarAba('extensao', this)"><i class="fab fa-chrome"></i> Extensão Chrome</div>
+        <div class="nav-link" onclick="trocarAba('extensao', this)"><i class="fas fa-database"></i> Backup & Integrações</div>
         <div class="sidebar-footer">
             <button class="btn btn-danger" style="width: 100%; justify-content: center;" onclick="fazerLogout()"><i class="fas fa-power-off"></i> Sair</button>
         </div>
@@ -336,12 +336,30 @@
             </div>
         </div>
 
-        <!-- TAB 6: EXTENSÃO -->
+        <!-- TAB 6: BACKUP & EXTENSÃO -->
         <div id="tab-extensao" class="tab-content">
             <div class="panel">
-                <div class="panel-header"><h3 class="panel-title">Integreação com Extensão Chrome</h3></div>
+                <div class="panel-header"><h3 class="panel-title"><i class="fas fa-database"></i> Backup & Restauração de Dados</h3></div>
+                <p style="margin-bottom: 20px; color: #666; font-size: 14px;">
+                    Baixe uma cópia de segurança de todos os seus lançamentos e estoque ou restaure um arquivo salvo anteriormente.
+                </p>
+                <div style="display: flex; gap: 15px; flex-wrap: wrap; margin-bottom: 25px;">
+                    <button class="btn btn-primary" onclick="exportarBackupJSON()"><i class="fas fa-download"></i> Baixar Backup Completo (JSON)</button>
+                    <label class="btn btn-success" style="cursor: pointer;">
+                        <i class="fas fa-upload"></i> Restaurar / Importar Backup (JSON)
+                        <input type="file" id="importFile" accept=".json" onchange="importarBackupJSON(event)" style="display: none;">
+                    </label>
+                </div>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <button class="btn btn-secondary" onclick="exportarCSV('pagar')"><i class="fas fa-file-excel"></i> Exportar Contas a Pagar (CSV)</button>
+                    <button class="btn btn-secondary" onclick="exportarCSV('receber')"><i class="fas fa-file-excel"></i> Exportar Contas a Receber (CSV)</button>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-header"><h3 class="panel-title"><i class="fab fa-chrome"></i> Integração com Extensão Chrome</h3></div>
                 <p style="margin-bottom: 15px;">Copie o manifesto abaixo para criar o seu ficheiro `manifest.json` na extensão do navegador:</p>
-                <textarea class="form-control" style="height: 150px; font-family: monospace; background: #222; color: #00ff66;" readonly>
+                <textarea class="form-control" style="height: 140px; font-family: monospace; background: #222; color: #00ff66;" readonly>
 {
   "manifest_version": 3,
   "name": "RICPOWER Finance Extension",
@@ -405,7 +423,7 @@
         </div>
     </div>
 
-    <!-- SCRIPT DE INTELIGÊNCIA BANCÁRIA E INTERFACE -->
+    <!-- SCRIPT DE INTELIGÊNCIA BANCÁRIA, BACKUP E INTERFACE -->
     <script>
         // ESTADO GLOBAL DA APLICAÇÃO
         let dbPagar = JSON.parse(localStorage.getItem('ric_pagar')) || [
@@ -602,6 +620,72 @@
                 },
                 options: { responsive: true }
             });
+        }
+
+        // BACKUP E EXPORTAÇÃO
+        function exportarBackupJSON() {
+            const backupData = {
+                dbPagar: dbPagar,
+                dbReceber: dbReceber,
+                dbEstoque: dbEstoque,
+                exportDate: new Date().toISOString()
+            };
+            const jsonStr = JSON.stringify(backupData, null, 2);
+            const blob = new Blob([jsonStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `ricpower_backup_${new Date().toISOString().slice(0, 10)}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function importarBackupJSON(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if (data.dbPagar || data.dbReceber || data.dbEstoque) {
+                        if (data.dbPagar) dbPagar = data.dbPagar;
+                        if (data.dbReceber) dbReceber = data.dbReceber;
+                        if (data.dbEstoque) dbEstoque = data.dbEstoque;
+                        
+                        carregarDados();
+                        alert('Backup importado e restaurado com sucesso!');
+                    } else {
+                        alert('Formato de arquivo de backup inválido.');
+                    }
+                } catch (err) {
+                    alert('Erro ao processar o arquivo de backup.');
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function exportarCSV(tipo) {
+            let csvContent = "data:text/csv;charset=utf-8,";
+            if (tipo === 'pagar') {
+                csvContent += "Vencimento;Fornecedor;Descricao;Valor;Status;CentroCusto\n";
+                dbPagar.forEach(p => {
+                    csvContent += `${p.venc};${p.fornecedor};${p.desc};${p.valor};${p.status};${p.cc}\n`;
+                });
+            } else if (tipo === 'receber') {
+                csvContent += "Vencimento;Cliente;Descricao;Valor;Status;CentroCusto\n";
+                dbReceber.forEach(r => {
+                    csvContent += `${r.venc};${r.cliente};${r.desc};${r.valor};${r.status};${r.cc}\n`;
+                });
+            }
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `ricpower_${tipo}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         }
 
         // CADASTROS & AÇÕES
