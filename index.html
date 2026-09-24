@@ -682,6 +682,12 @@
             atualizarDREDual();
             renderTabelas();
             renderGraficos(realIn, realOut);
+
+            // Verificação e geração automática de despesas fixas do mês (sem alertas ao carregar)
+            if (!window.fixasVerificadasAuto) {
+                window.fixasVerificadasAuto = true;
+                gerarDespesasFixasMesAtual(true);
+            }
         }
 
         // CÁLCULO DRE DUAL
@@ -1022,7 +1028,7 @@
         }
 
         // AUTOMATIZAÇÃO DE DESPESAS FIXAS (FILTRA POR CAMPO 'FIXA' E VERIFICA DUPLICIDADE PELA DESCRIÇÃO)
-        function gerarDespesasFixasMesAtual() {
+        function gerarDespesasFixasMesAtual(silencioso = false) {
             const hoje = new Date();
             const anoAtual = hoje.getFullYear();
             const mesAtual = String(hoje.getMonth() + 1).padStart(2, '0');
@@ -1031,7 +1037,7 @@
             const contasFixas = dbPagar.filter(item => item.fixa === true || item.fixa === 'SIM');
 
             if (contasFixas.length === 0) {
-                alert("Nenhuma conta marcada como FIXA foi encontrada no cadastro.");
+                if (!silencioso) alert("Nenhuma conta marcada como FIXA foi encontrada no cadastro.");
                 return;
             }
 
@@ -1068,9 +1074,11 @@
                 }
             });
 
-            if (!isFirebaseConnected) carregarDados();
+            if (!isFirebaseConnected && novosLancamentos > 0) carregarDados();
             
-            alert(`${novosLancamentos} despesa(s) fixa(s) gerada(s) para o mês ${mesAtual}/${anoAtual}!`);
+            if (!silencioso) {
+                alert(`${novosLancamentos} despesa(s) fixa(s) gerada(s) para o mês ${mesAtual}/${anoAtual}!`);
+            }
         }
 
         // CONTROLADORES DE MODAL (COM LIMPEZA COMPLETA DOS CAMPOS AO ABRIR NOVO)
