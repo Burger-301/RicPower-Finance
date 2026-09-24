@@ -368,7 +368,7 @@
             </div>
             <p style="text-align: center; color: #aaaaaa; font-size: 13px; margin-bottom: 25px;">Gestão Financeira & Estoque</p>
             <div id="loginAlert" class="login-alert"></div>
-            <form onsubmit="realizarLogin(event)">
+            <form onsubmit="return realizarLogin(event);">
                 <div class="form-group">
                     <label class="form-label" style="color: var(--accent-color);">E-mail de Acesso</label>
                     <input type="email" id="loginEmail" class="form-control" style="background-color: #252525; border-color: #333; color: #fff;" placeholder="admin@richard.com" required>
@@ -382,8 +382,8 @@
                 </button>
             </form>
             <div style="margin-top: 20px; text-align: center;">
-                <button type="button" onclick="preencherLoginDemo()" style="background: none; border: none; color: #888; text-decoration: underline; font-size: 12px; cursor: pointer;">
-                    Preencher Acesso Demo (`admin@richard.com`)
+                <button type="button" onclick="preencherEEntrar()" style="background-color: var(--accent-color); color: var(--primary-color); border: none; padding: 10px 15px; border-radius: 6px; font-weight: bold; font-size: 13px; cursor: pointer; width: 100%;">
+                    <i class="fas fa-bolt"></i> Entrar com Acesso Demo (1-Clique)
                 </button>
             </div>
         </div>
@@ -436,4 +436,1576 @@
                     <div class="modern-filter-dropdown" id="dateFilterDropdown">
                         <div class="filter-option active-filter" id="opt-todos" onclick="selectPredefinedPeriod(this, 'Todos os Registros')">Todos os Registros</div>
                         <div class="filter-option" id="opt-mes-atual" onclick="selectPredefinedPeriod(this, 'Este Mês')">Este Mês</div>
-                        <div class="filt
+                        <div class="filter-option" onclick="selectPredefinedPeriod(this, 'Mês Passado')">Mês Passado</div>
+                        <div class="filter-option" onclick="selectPredefinedPeriod(this, 'Últimos 3 Meses')">Últimos 3 Meses</div>
+                        <div class="filter-option" onclick="selectPredefinedPeriod(this, 'Este Ano')">Este Ano</div>
+                        
+                        <div class="filter-custom-date">
+                            <h4>Período Personalizado</h4>
+                            <div class="date-range-inputs">
+                                <div class="date-input-group">
+                                    <label>De:</label>
+                                    <input type="date" id="dataInicioFiltro">
+                                </div>
+                                <div class="date-input-group">
+                                    <label>Até:</label>
+                                    <input type="date" id="dataFimFiltro">
+                                </div>
+                            </div>
+                            <div class="filter-actions">
+                                <button type="button" class="btn-filter btn-clear" onclick="limparFiltro()"><i class="fas fa-eraser"></i> Limpar</button>
+                                <button type="button" class="btn-filter btn-apply" onclick="aplicarFiltroPersonalizado()"><i class="fas fa-check"></i> Aplicar</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 1: DASHBOARD -->
+            <div id="tab-dashboard" class="tab-content active">
+                <div class="cards-grid">
+                    <div class="card income">
+                        <div class="card-info">
+                            <h3 id="cardReceberLabel">Entrou no Caixa</h3>
+                            <h2 id="dashTotalReceber">R$ 0,00</h2>
+                        </div>
+                        <div class="card-icon"><i class="fas fa-wallet"></i></div>
+                    </div>
+                    <div class="card expense">
+                        <div class="card-info">
+                            <h3 id="cardPagarLabel">Saiu do Caixa</h3>
+                            <h2 id="dashTotalPagar">R$ 0,00</h2>
+                        </div>
+                        <div class="card-icon"><i class="fas fa-file-invoice-dollar"></i></div>
+                    </div>
+                    <div class="card balance">
+                        <div class="card-info">
+                            <h3>Saldo Efetivo do Caixa</h3>
+                            <h2 id="dashSaldoPrevisto">R$ 0,00</h2>
+                        </div>
+                        <div class="card-icon"><i class="fas fa-piggy-bank"></i></div>
+                    </div>
+                    <div class="card stock">
+                        <div class="card-info">
+                            <h3>Patrimônio em Estoque</h3>
+                            <h2 id="dashValorEstoque">R$ 0,00</h2>
+                        </div>
+                        <div class="card-icon"><i class="fas fa-boxes"></i></div>
+                    </div>
+                </div>
+
+                <div class="dashboard-grid">
+                    <div class="panel">
+                        <div class="panel-header">
+                            <h3 class="panel-title">Fluxo de Caixa Realizado (Entradas vs Saídas)</h3>
+                        </div>
+                        <canvas id="fluxoCaixaChart" height="100"></canvas>
+                    </div>
+                    <div class="panel">
+                        <div class="panel-header">
+                            <h3 class="panel-title">Despesas por Categoria</h3>
+                        </div>
+                        <canvas id="centroCustoChart" height="200"></canvas>
+                    </div>
+                </div>
+
+                <div class="dashboard-grid">
+                    <div class="panel">
+                        <div class="panel-header">
+                            <h3 class="panel-title">Lançamentos Próximos do Vencimento</h3>
+                        </div>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Vencimento</th>
+                                    <th>Tipo</th>
+                                    <th>Nome / Razão</th>
+                                    <th>Valor</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tableProximosVencimentos">
+                                <!-- Preenchido dinamicamente -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="panel">
+                        <div class="panel-header">
+                            <h3 class="panel-title">Alertas de Estoque Crítico</h3>
+                        </div>
+                        <div id="painelAlertasEstoque">
+                            <!-- Preenchido dinamicamente -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 2: CONTAS A PAGAR -->
+            <div id="tab-pagar" class="tab-content">
+                <div class="panel">
+                    <div class="panel-header">
+                        <h3 class="panel-title">Registo de Saídas (A Pagar)</h3>
+                        <div class="panel-actions">
+                            <input type="text" id="searchPagar" class="search-input" placeholder="Buscar fornecedor ou descrição..." onkeyup="renderizarContasPagar()">
+                            <select id="filterStatusPagar" class="filter-select" onchange="renderizarContasPagar()">
+                                <option value="todos">Todos os Status</option>
+                                <option value="pendente">Apenas Pendentes</option>
+                                <option value="atrasado">Apenas Atrasados</option>
+                                <option value="pago">Apenas Pagos</option>
+                            </select>
+                            <button type="button" class="btn btn-danger" onclick="abrirModalSaida()"><i class="fas fa-plus"></i> Nova Conta a Pagar</button>
+                        </div>
+                    </div>
+
+                    <div class="filter-summary-bar">
+                        <span><i class="fas fa-calculator"></i> <span id="totalPagarFiltrado">Total do Filtro: R$ 0,00</span></span>
+                    </div>
+
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Vencimento</th>
+                                <th>Fornecedor</th>
+                                <th>Descrição</th>
+                                <th>Valor</th>
+                                <th>Categoria</th>
+                                <th>Status</th>
+                                <th>Data Pagamento</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableContasPagar">
+                            <!-- Preenchido dinamicamente -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- TAB 3: CONTAS A RECEBER -->
+            <div id="tab-receber" class="tab-content">
+                <div class="panel">
+                    <div class="panel-header">
+                        <h3 class="panel-title">Registo de Entradas (A Receber)</h3>
+                        <div class="panel-actions">
+                            <input type="text" id="searchReceber" class="search-input" placeholder="Buscar cliente ou descrição..." onkeyup="renderizarContasReceber()">
+                            <select id="filterStatusReceber" class="filter-select" onchange="renderizarContasReceber()">
+                                <option value="todos">Todos os Status</option>
+                                <option value="pendente">Apenas Pendentes</option>
+                                <option value="atrasado">Apenas Atrasados</option>
+                                <option value="pago">Apenas Pagos</option>
+                            </select>
+                            <button type="button" class="btn btn-success" onclick="abrirModalEntrada()"><i class="fas fa-plus"></i> Nova Conta a Receber</button>
+                        </div>
+                    </div>
+
+                    <div class="filter-summary-bar">
+                        <span><i class="fas fa-calculator"></i> <span id="totalReceberFiltrado">Total do Filtro: R$ 0,00</span></span>
+                    </div>
+
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Vencimento</th>
+                                <th>Cliente</th>
+                                <th>Descrição</th>
+                                <th>Valor</th>
+                                <th>Categoria</th>
+                                <th>Status</th>
+                                <th>Data Pagamento</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableContasReceber">
+                            <!-- Preenchido dinamicamente -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- TAB 4: ESTOQUE -->
+            <div id="tab-estoque" class="tab-content">
+                <div class="cards-grid">
+                    <div class="card stock">
+                        <div class="card-info">
+                            <h3>Patrimônio Total Investido</h3>
+                            <h2 id="stkPatrimonioTotal">R$ 0,00</h2>
+                        </div>
+                        <div class="card-icon"><i class="fas fa-boxes"></i></div>
+                    </div>
+                    <div class="card balance">
+                        <div class="card-info">
+                            <h3>Itens Cadastrados (SKUs)</h3>
+                            <h2 id="stkTotalSkus">0</h2>
+                        </div>
+                        <div class="card-icon"><i class="fas fa-barcode"></i></div>
+                    </div>
+                    <div class="card expense">
+                        <div class="card-info">
+                            <h3>Produtos em Alerta Crítico</h3>
+                            <h2 id="stkTotalAlertas">0</h2>
+                        </div>
+                        <div class="card-icon"><i class="fas fa-exclamation-triangle"></i></div>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <div class="panel-header">
+                        <h3 class="panel-title">Controle de Peças e Insumos</h3>
+                        <div class="panel-actions">
+                            <input type="text" id="searchEstoque" class="search-input" placeholder="Buscar por SKU ou Nome..." onkeyup="renderizarEstoque()">
+                            <select id="filterAlertaEstoque" class="filter-select" onchange="renderizarEstoque()">
+                                <option value="todos">Todos os Produtos</option>
+                                <option value="alerta">Estoque Baixo</option>
+                                <option value="zerado">Esgotados</option>
+                            </select>
+                            <button type="button" class="btn btn-primary" onclick="abrirModalProduto()"><i class="fas fa-plus"></i> Novo Produto</button>
+                        </div>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>SKU</th>
+                                <th>Nome da Peça</th>
+                                <th>Categoria</th>
+                                <th>Qtd Atual</th>
+                                <th>Qtd Mínima</th>
+                                <th>Preço Custo</th>
+                                <th>Preço Venda</th>
+                                <th>Margem %</th>
+                                <th>Total Investido</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableEstoque">
+                            <!-- Preenchido dinamicamente -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- TAB 5: DRE -->
+            <div id="tab-dre" class="tab-content">
+                <div class="panel">
+                    <div class="panel-header">
+                        <h3 class="panel-title">Demonstrativo do Resultado (<span id="drePeriodoText">Todos os Registros</span>)</h3>
+                    </div>
+                    
+                    <div class="dre-container">
+                        <div class="dre-card real">
+                            <h3 style="color: var(--success-color); margin-bottom: 15px;"><i class="fas fa-check-circle"></i> Regime de Caixa Realizado (Efetivo)</h3>
+                            <p style="font-size: 12px; color: #666; margin-bottom: 15px;">Apenas valores que efetivamente entraram e saíram da conta da empresa.</p>
+                            
+                            <div class="dre-row">
+                                <span>Entradas no Caixa (Receita Pago):</span>
+                                <strong id="dreReceitaRealizada" class="text-success">R$ 0,00</strong>
+                            </div>
+                            <div class="dre-row">
+                                <span>Saídas do Caixa (Despesas Pago):</span>
+                                <strong id="dreDespesasPagas" class="text-danger">R$ 0,00</strong>
+                            </div>
+                            <div class="dre-row total">
+                                <span>Resultado Efetivo em Caixa:</span>
+                                <strong id="dreResultadoRealCaixa">R$ 0,00</strong>
+                            </div>
+                        </div>
+
+                        <div class="dre-card proj">
+                            <h3 style="color: var(--accent-color); margin-bottom: 15px;"><i class="fas fa-hourglass-half"></i> Projeção & Valores Pendentes</h3>
+                            <p style="font-size: 12px; color: #666; margin-bottom: 15px;">Contas pendentes e em atraso previstas para entrar/sair.</p>
+
+                            <div class="dre-row">
+                                <span>A Receber Pendente/Atrasado:</span>
+                                <strong id="dreReceitaPendente">R$ 0,00</strong>
+                            </div>
+                            <div class="dre-row">
+                                <span>A Pagar Pendente/Atrasado:</span>
+                                <strong id="dreDespeSaPendente" class="text-danger">R$ 0,00</strong>
+                            </div>
+                            <div class="dre-row total">
+                                <span>Resultado Total Projetado:</span>
+                                <strong id="dreResultadoProjetado">R$ 0,00</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 20px; padding: 15px; background-color: #f9f9f9; border-radius: 6px; text-align: right;">
+                        <span style="font-size: 14px; font-weight: bold;">Margem de Lucro Efetiva do Caixa: <span id="dreMargemReal" class="text-success">0%</span></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 6: EXTENSÃO & BACKUP -->
+            <div id="tab-extensao" class="tab-content">
+                <div class="panel">
+                    <div class="panel-header">
+                        <h3 class="panel-title">Extensão do Chrome & Lançamento Rápido</h3>
+                    </div>
+                    <div class="form-grid">
+                        <div>
+                            <h4>Simulador de Atalho da Extensão</h4>
+                            <br>
+                            <div class="form-group">
+                                <label class="form-label">Tipo de Lançamento</label>
+                                <select id="extTipo" class="form-control">
+                                    <option value="RECEBER">Conta a Receber (Entrada)</option>
+                                    <option value="PAGAR">Conta a Pagar (Saída)</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Cliente / Fornecedor</label>
+                                <input type="text" id="extPessoa" class="form-control" placeholder="Nome da pessoa ou empresa">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Descrição</label>
+                                <input type="text" id="extDescricao" class="form-control" placeholder="Ex: Conserto urgente">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Valor (R$)</label>
+                                <input type="number" step="0.01" id="extValor" class="form-control" placeholder="0.00">
+                            </div>
+                            <button type="button" class="btn btn-primary" onclick="lancamentoRapidoExtensao()"><i class="fas fa-bolt"></i> Gravar Lançamento Rápido</button>
+                        </div>
+
+                        <div>
+                            <h4>Backup e Exportação de Dados</h4>
+                            <br>
+                            <p style="font-size: 13px; color: #666; margin-bottom: 15px;">Guarde cópias de segurança em JSON ou exporte as suas tabelas em CSV para abrir no Excel.</p>
+                            <button type="button" class="btn btn-secondary" onclick="exportarBackupJSON()"><i class="fas fa-download"></i> Exportar Backup (JSON)</button>
+                            <br><br>
+                            <input type="file" id="fileImportJson" accept=".json" style="display: none;" onchange="importarBackupJSON(event)">
+                            <button type="button" class="btn btn-secondary" onclick="document.getElementById('fileImportJson').click()"><i class="fas fa-upload"></i> Restaurar Backup (JSON)</button>
+                            <br><br>
+                            <button type="button" class="btn btn-primary" onclick="exportarCSV('receber')"><i class="fas fa-file-csv"></i> Baixar Entradas (CSV)</button>
+                            <button type="button" class="btn btn-primary" onclick="exportarCSV('pagar')"><i class="fas fa-file-csv"></i> Baixar Saídas (CSV)</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- MODAIS DE CADASTRO -->
+    <div id="modalEntrada" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="fecharModal('modalEntrada')">&times;</span>
+            <h2 class="modal-title"><i class="fas fa-arrow-up text-success"></i> Conta a Receber</h2>
+            <form id="formEntrada" onsubmit="salvarContaReceber(event)">
+                <input type="hidden" id="entId">
+                <div class="form-grid">
+                    <div class="form-group full-width">
+                        <label class="form-label">Cliente</label>
+                        <input type="text" id="entCliente" class="form-control" placeholder="Nome do Cliente" required>
+                    </div>
+                    <div class="form-group full-width">
+                        <label class="form-label">Descrição</label>
+                        <input type="text" id="entDescricao" class="form-control" placeholder="Ex: Reparo de Placa de Vídeo" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Valor (R$)</label>
+                        <input type="number" step="0.01" id="entValor" class="form-control" placeholder="0.00" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Data Vencimento</label>
+                        <input type="date" id="entVencimento" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Categoria</label>
+                        <select id="entCategoria" class="form-control">
+                            <option value="Reparos">Reparos</option>
+                            <option value="Peças Novas">Peças Novas</option>
+                            <option value="Serviços">Serviços</option>
+                            <option value="Outros">Outros</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Status</label>
+                        <select id="entStatus" class="form-control">
+                            <option value="PENDENTE">PENDENTE</option>
+                            <option value="PAGO">PAGO</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Data Pagamento Efetivo</label>
+                        <input type="date" id="entDataPagamento" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Tipo de Pagamento</label>
+                        <select id="entTipoPagamento" class="form-control">
+                            <option value="PIX">PIX</option>
+                            <option value="Dinheiro">Dinheiro</option>
+                            <option value="Cartão">Cartão</option>
+                            <option value="Transferência">Transferência</option>
+                        </select>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; padding: 12px; margin-top: 15px;">
+                    <i class="fas fa-save"></i> Guardar Entrada
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div id="modalSaida" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="fecharModal('modalSaida')">&times;</span>
+            <h2 class="modal-title"><i class="fas fa-arrow-down text-danger"></i> Conta a Pagar</h2>
+            <form id="formSaida" onsubmit="salvarContaPagar(event)">
+                <input type="hidden" id="pagId">
+                <div class="form-grid">
+                    <div class="form-group full-width">
+                        <label class="form-label">Fornecedor</label>
+                        <input type="text" id="pagFornecedor" class="form-control" placeholder="Ex: RGE, AliExpress" required>
+                    </div>
+                    <div class="form-group full-width">
+                        <label class="form-label">Descrição</label>
+                        <input type="text" id="pagDescricao" class="form-control" placeholder="Ex: Compra de Lote de Insumos" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Valor (R$)</label>
+                        <input type="number" step="0.01" id="pagValor" class="form-control" placeholder="0.00" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Data Vencimento</label>
+                        <input type="date" id="pagVencimento" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Categoria</label>
+                        <select id="pagCategoria" class="form-control">
+                            <option value="Custos Fixos">Custos Fixos</option>
+                            <option value="Peças Novas">Peças Novas</option>
+                            <option value="Ferramentas">Ferramentas</option>
+                            <option value="Impostos">Impostos</option>
+                            <option value="Outros">Outros</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Status</label>
+                        <select id="pagStatus" class="form-control">
+                            <option value="PENDENTE">PENDENTE</option>
+                            <option value="PAGO">PAGO</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Data Pagamento Efetivo</label>
+                        <input type="date" id="pagDataPagamento" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Tipo de Pagamento</label>
+                        <select id="pagTipoPagamento" class="form-control">
+                            <option value="PIX">PIX</option>
+                            <option value="Boleto">Boleto</option>
+                            <option value="Cartão">Cartão</option>
+                            <option value="Transferência">Transferência</option>
+                        </select>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; padding: 12px; margin-top: 15px;">
+                    <i class="fas fa-save"></i> Guardar Saída
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div id="modalProduto" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="fecharModal('modalProduto')">&times;</span>
+            <h2 class="modal-title"><i class="fas fa-box" style="color: #3498db;"></i> Produto no Estoque</h2>
+            <form id="formProduto" onsubmit="salvarProduto(event)">
+                <input type="hidden" id="prodId">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label class="form-label">SKU / Código</label>
+                        <input type="text" id="prodSku" class="form-control" placeholder="PEC-001" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Categoria</label>
+                        <input type="text" id="prodCategoria" class="form-control" placeholder="Componentes, Insumos..." required>
+                    </div>
+                    <div class="form-group full-width">
+                        <label class="form-label">Nome da Peça / Produto</label>
+                        <input type="text" id="prodNome" class="form-control" placeholder="Ex: Chip Mosfet VRM" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Qtd Atual em Estoque</label>
+                        <input type="number" id="prodQtd" class="form-control" placeholder="0" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Qtd Mínima de Alerta</label>
+                        <input type="number" id="prodQtdMin" class="form-control" placeholder="5" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Preço Custo (R$)</label>
+                        <input type="number" step="0.01" id="prodPrecoCusto" class="form-control" placeholder="0.00" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Preço Venda (R$)</label>
+                        <input type="number" step="0.01" id="prodPrecoVenda" class="form-control" placeholder="0.00" required>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; padding: 12px; margin-top: 15px;">
+                    <i class="fas fa-save"></i> Guardar Produto
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div id="modalMovimentacao" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="fecharModal('modalMovimentacao')">&times;</span>
+            <h2 class="modal-title"><i class="fas fa-exchange-alt"></i> Movimentação de Estoque</h2>
+            <p id="movItemInfo" style="font-size: 13px; color: #555; margin-bottom: 15px; font-weight: bold;"></p>
+            <form id="formMovimentacao" onsubmit="salvarMovimentacaoEstoque(event)">
+                <input type="hidden" id="movProdId">
+                <div class="form-group">
+                    <label class="form-label">Tipo de Movimento</label>
+                    <select id="movTipo" class="form-control">
+                        <option value="ENTRADA">Entrada (+ Adicionar unidades)</option>
+                        <option value="SAIDA">Saída (- Baixa por uso/venda)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Quantidade</label>
+                    <input type="number" id="movQtd" class="form-control" min="1" value="1" required>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; padding: 12px; margin-top: 15px;">
+                    <i class="fas fa-check"></i> Confirmar Movimentação
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- SDKs do Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+
+    <!-- LÓGICA JAVASCRIPT PROTEGIDA -->
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyAMIo-e1IQVvoVNvHfjyCvQ3mpmA8XpEZU",
+            authDomain: "ricpower-finance-4312b.firebaseapp.com",
+            databaseURL: "https://ricpower-finance-4312b-default-rtdb.firebaseio.com",
+            projectId: "ricpower-finance-4312b",
+            storageBucket: "ricpower-finance-4312b.firebasestorage.app",
+            messagingSenderId: "632169254200",
+            appId: "1:632169254200:web:776e49224d4f61bc2e05cd"
+        };
+
+        if (typeof firebase !== 'undefined' && !firebase.apps.length) {
+            try { firebase.initializeApp(firebaseConfig); } catch(e) {}
+        }
+        const db = (typeof firebase !== 'undefined' && firebase.apps.length) ? firebase.database() : null;
+
+        function setText(elemId, text) {
+            const el = document.getElementById(elemId);
+            if (el) el.innerText = text;
+        }
+
+        function garantirArray(val) {
+            if (!val) return [];
+            if (Array.isArray(val)) return val.filter(item => item !== null && item !== undefined);
+            if (typeof val === 'object') return Object.values(val).filter(item => item !== null && item !== undefined);
+            return [];
+        }
+
+        function parseDateIso(dateStr) {
+            if (!dateStr) return null;
+            let s = String(dateStr).trim();
+            if (s.includes(' ')) s = s.split(' ')[0];
+            if (s.includes('T')) s = s.split('T')[0];
+            
+            if (s.includes('/')) {
+                let parts = s.split('/');
+                if (parts.length === 3) {
+                    return new Date(parseInt(parts[2], 10), parseInt(parts[1], 10) - 1, parseInt(parts[0], 10));
+                }
+            }
+            if (s.includes('-')) {
+                let parts = s.split('-');
+                if (parts.length === 3) {
+                    return new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+                }
+            }
+            let d = new Date(s);
+            return isNaN(d.getTime()) ? null : d;
+        }
+
+        const getMesAtualStr = () => {
+            const d = new Date();
+            const y = d.getFullYear();
+            const m = String(d.getMonth() + 1).padStart(2, '0');
+            return `${y}-${m}`;
+        };
+
+        const mesAtual = getMesAtualStr();
+
+        let contasPagar = garantirArray(JSON.parse(localStorage.getItem('ricpower_pagar'))) || [
+            { id: '1', vencimento: `${mesAtual}-15`, fornecedor: 'RGE Energia', descricao: 'Conta de Energia Elétrica', valor: 1000.00, categoria: 'Custos Fixos', status: 'PAGO', dataPagamento: `${mesAtual}-15`, tipoPagamento: 'PIX' },
+            { id: '2', vencimento: `${mesAtual}-21`, fornecedor: 'AliExpress', descricao: 'Lote de Placas e Chips', valor: 850.00, categoria: 'Peças Novas', status: 'PENDENTE', dataPagamento: '', tipoPagamento: 'PIX' },
+            { id: '3', vencimento: `${mesAtual}-28`, fornecedor: 'Imobiliária', descricao: 'Aluguel do Galpão', valor: 1270.00, categoria: 'Custos Fixos', status: 'PENDENTE', dataPagamento: '', tipoPagamento: 'Transferência' }
+        ];
+
+        let contasReceber = garantirArray(JSON.parse(localStorage.getItem('ricpower_receber'))) || [
+            { id: '1', vencimento: `${mesAtual}-18`, cliente: 'Gabi', descricao: 'Reparo de GPU RTX 3080', valor: 450.00, categoria: 'Reparos', status: 'PAGO', dataPagamento: `${mesAtual}-18`, tipoPagamento: 'PIX' },
+            { id: '2', vencimento: `${mesAtual}-20`, cliente: 'Yuri', descricao: 'Troca de Telas e Peças', valor: 280.00, categoria: 'Peças Novas', status: 'PENDENTE', dataPagamento: '', tipoPagamento: 'PIX' }
+        ];
+
+        let estoque = garantirArray(JSON.parse(localStorage.getItem('ricpower_estoque'))) || [
+            { id: '1', sku: 'PEC-001', nome: 'Chip Mosfet VRM 40V', categoria: 'Componentes', qtd: 14, qtdMin: 10, precoCusto: 12.50, precoVenda: 45.00 },
+            { id: '2', sku: 'PEC-002', nome: 'Pasta Térmica Alta Condutividade', categoria: 'Insumos', qtd: 3, qtdMin: 5, precoCusto: 35.00, precoVenda: 90.00 }
+        ];
+
+        let filtroDataAtivo = 'Todos os Registros';
+        let dataInicioCustom = '';
+        let dataFimCustom = '';
+        let fluxoCaixaChartInstance = null;
+        let centroCustoChartInstance = null;
+
+        function getStatusEfetivo(item) {
+            if (String(item.status).toUpperCase() === 'PAGO') return 'PAGO';
+            const hoje = new Date();
+            hoje.setHours(0,0,0,0);
+            const dtVenc = parseDateIso(item.vencimento);
+            if (dtVenc && dtVenc < hoje) return 'ATRASADO';
+            return 'PENDENTE';
+        }
+
+        function sanitizarTexto(txt, valorPadrao = 'Não informado') {
+            if (!txt || txt === 'undefined' || txt === 'null') return valorPadrao;
+            return String(txt).trim();
+        }
+
+        function salvarDadosLocal(skipNuvem = false) {
+            contasPagar = garantirArray(contasPagar);
+            contasReceber = garantirArray(contasReceber);
+            estoque = garantirArray(estoque);
+
+            localStorage.setItem('ricpower_pagar', JSON.stringify(contasPagar));
+            localStorage.setItem('ricpower_receber', JSON.stringify(contasReceber));
+            localStorage.setItem('ricpower_estoque', JSON.stringify(estoque));
+
+            if (db && !skipNuvem) {
+                db.ref('ricpower_dados').set({
+                    contasPagar: contasPagar,
+                    contasReceber: contasReceber,
+                    estoque: estoque
+                }).catch(err => console.error("Erro no Firebase:", err));
+            }
+        }
+
+        function escutarSincronizacaoNuvem() {
+            if (db) {
+                db.ref('ricpower_dados').on('value', (snapshot) => {
+                    const dadosNuvem = snapshot.val();
+                    if (dadosNuvem) {
+                        contasPagar = garantirArray(dadosNuvem.contasPagar);
+                        contasReceber = garantirArray(dadosNuvem.contasReceber);
+                        estoque = garantirArray(dadosNuvem.estoque);
+
+                        salvarDadosLocal(true);
+                        renderizarTudo();
+                    } else {
+                        salvarDadosLocal();
+                    }
+                });
+            }
+        }
+
+        function formatarMoeda(valor) {
+            return (valor || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        }
+
+        function formatarDataBR(dataIso) {
+            if (!dataIso) return '-';
+            const dt = parseDateIso(dataIso);
+            if (!dt) return dataIso;
+            const day = String(dt.getDate()).padStart(2, '0');
+            const month = String(dt.getMonth() + 1).padStart(2, '0');
+            const year = dt.getFullYear();
+            return `${day}/${month}/${year}`;
+        }
+
+        function realizarLogin(event) {
+            if (event) {
+                event.preventDefault();
+                if (event.stopPropagation) event.stopPropagation();
+            }
+            try {
+                const emailInput = document.getElementById('loginEmail');
+                const senhaInput = document.getElementById('loginSenha');
+                const alertBox = document.getElementById('loginAlert');
+
+                const email = (emailInput ? emailInput.value : '').trim();
+                const senha = (senhaInput ? senhaInput.value : '').trim();
+
+                if (email === 'admin@richard.com' && senha === 'admin123') {
+                    localStorage.setItem('ricpower_logged_user', email);
+                    if (alertBox) alertBox.style.display = 'none';
+                    iniciarAplicacao();
+                } else {
+                    if (alertBox) {
+                        alertBox.className = 'login-alert error';
+                        alertBox.innerText = 'E-mail ou senha incorretos! Use admin@richard.com / admin123';
+                        alertBox.style.display = 'block';
+                    }
+                }
+            } catch (err) {
+                console.error("Erro ao realizar login:", err);
+                localStorage.setItem('ricpower_logged_user', 'admin@richard.com');
+                iniciarAplicacao();
+            }
+            return false;
+        }
+
+        function preencherEEntrar() {
+            const elE = document.getElementById('loginEmail');
+            const elS = document.getElementById('loginSenha');
+            if (elE) elE.value = 'admin@richard.com';
+            if (elS) elS.value = 'admin123';
+            realizarLogin(null);
+        }
+
+        function logout() {
+            localStorage.removeItem('ricpower_logged_user');
+            const elApp = document.getElementById('appScreen');
+            const elLogin = document.getElementById('loginScreen');
+            if (elApp) elApp.style.display = 'none';
+            if (elLogin) elLogin.style.display = 'flex';
+        }
+
+        function verificarSessao() {
+            try {
+                const user = localStorage.getItem('ricpower_logged_user');
+                if (user) {
+                    iniciarAplicacao();
+                } else {
+                    const elLogin = document.getElementById('loginScreen');
+                    const elApp = document.getElementById('appScreen');
+                    if (elLogin) elLogin.style.display = 'flex';
+                    if (elApp) elApp.style.display = 'none';
+                }
+            } catch(e) {
+                if (document.getElementById('loginScreen')) document.getElementById('loginScreen').style.display = 'flex';
+            }
+        }
+
+        function iniciarAplicacao() {
+            try {
+                const elLogin = document.getElementById('loginScreen');
+                const elApp = document.getElementById('appScreen');
+                if (elLogin) elLogin.style.display = 'none';
+                if (elApp) elApp.style.display = 'flex';
+                setText('userEmailDisplay', localStorage.getItem('ricpower_logged_user') || 'admin@richard.com');
+                
+                try { escutarSincronizacaoNuvem(); } catch(e) {}
+                renderizarTudo();
+            } catch(err) {
+                console.error("Erro ao iniciar aplicação:", err);
+            }
+        }
+
+        function showTab(tabId, navElement) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
+
+            const selectedTab = document.getElementById(`tab-${tabId}`);
+            if (selectedTab) selectedTab.classList.add('active');
+
+            if (navElement) {
+                navElement.classList.add('active');
+            }
+
+            const titles = {
+                'dashboard': 'Visão Geral Financeira',
+                'pagar': 'Contas a Pagar (Saídas)',
+                'receber': 'Contas a Receber (Entradas)',
+                'estoque': 'Controle de Estoque (Peças)',
+                'dre': 'Demonstrativo do Resultado do Exercício (DRE)',
+                'extensao': 'Extensão Chrome & Integrações'
+            };
+            setText('pageTitle', titles[tabId] || 'RICPOWER');
+            renderizarTudo();
+        }
+
+        function toggleDateFilter() {
+            const drop = document.getElementById('dateFilterDropdown');
+            if (drop) drop.classList.toggle('show');
+        }
+
+        function selectPredefinedPeriod(element, periodName) {
+            filtroDataAtivo = periodName;
+            dataInicioCustom = '';
+            dataFimCustom = '';
+
+            setText('currentPeriodText', periodName);
+            document.querySelectorAll('.filter-option').forEach(el => el.classList.remove('active-filter'));
+            if (element) element.classList.add('active-filter');
+
+            const drop = document.getElementById('dateFilterDropdown');
+            if (drop) drop.classList.remove('show');
+            renderizarTudo();
+        }
+
+        function aplicarFiltroPersonalizado() {
+            const dtInicio = document.getElementById('dataInicioFiltro')?.value;
+            const dtFim = document.getElementById('dataFimFiltro')?.value;
+
+            if (!dtInicio || !dtFim) {
+                alert("Por favor, selecione as datas de início e fim.");
+                return;
+            }
+
+            filtroDataAtivo = 'Customizado';
+            dataInicioCustom = dtInicio;
+            dataFimCustom = dtFim;
+
+            const textoFiltro = `${formatarDataBR(dtInicio)} até ${formatarDataBR(dtFim)}`;
+            setText('currentPeriodText', textoFiltro);
+            document.querySelectorAll('.filter-option').forEach(el => el.classList.remove('active-filter'));
+            const drop = document.getElementById('dateFilterDropdown');
+            if (drop) drop.classList.remove('show');
+
+            renderizarTudo();
+        }
+
+        function limparFiltro() {
+            const i1 = document.getElementById('dataInicioFiltro');
+            const i2 = document.getElementById('dataFimFiltro');
+            if (i1) i1.value = '';
+            if (i2) i2.value = '';
+            const btnPadrao = document.getElementById('opt-todos');
+            selectPredefinedPeriod(btnPadrao, 'Todos os Registros');
+        }
+
+        function filtrarPorPeriodo(lista, campoData = 'vencimento') {
+            const listaArray = garantirArray(lista);
+            if (filtroDataAtivo === 'Todos os Registros') return listaArray;
+
+            const agora = new Date();
+            const anoAtual = agora.getFullYear();
+            const mesAtualIndex = agora.getMonth();
+
+            return listaArray.filter(item => {
+                if (!item[campoData]) return true;
+                const dataItem = parseDateIso(item[campoData]);
+                if (!dataItem) return true;
+
+                const anoItem = dataItem.getFullYear();
+                const mesItem = dataItem.getMonth();
+
+                if (filtroDataAtivo === 'Este Mês') {
+                    return anoItem === anoAtual && mesItem === mesAtualIndex;
+                } else if (filtroDataAtivo === 'Mês Passado') {
+                    const mesPassado = mesAtualIndex === 0 ? 11 : mesAtualIndex - 1;
+                    const anoPassado = mesAtualIndex === 0 ? anoAtual - 1 : anoAtual;
+                    return anoItem === anoPassado && mesItem === mesPassado;
+                } else if (filtroDataAtivo === 'Últimos 3 Meses') {
+                    const limite3Meses = new Date();
+                    limite3Meses.setMonth(limite3Meses.getMonth() - 3);
+                    return dataItem >= limite3Meses;
+                } else if (filtroDataAtivo === 'Este Ano') {
+                    return anoItem === anoAtual;
+                } else if (filtroDataAtivo === 'Customizado' && dataInicioCustom && dataFimCustom) {
+                    const dtI = parseDateIso(dataInicioCustom);
+                    const dtF = parseDateIso(dataFimCustom);
+                    if (dtI) dtI.setHours(0,0,0,0);
+                    if (dtF) dtF.setHours(23,59,59,999);
+                    if (dtI && dtF) return dataItem >= dtI && dataItem <= dtF;
+                }
+                return true;
+            });
+        }
+
+        function renderizarTudo() {
+            renderizarDashboard();
+            renderizarContasPagar();
+            renderizarContasReceber();
+            renderizarEstoque();
+            renderizarDRE();
+        }
+
+        function renderizarDashboard() {
+            const pagarFiltrado = filtrarPorPeriodo(contasPagar);
+            const receberFiltrado = filtrarPorPeriodo(contasReceber);
+
+            const receitaEntrouCaixa = receberFiltrado.filter(r => getStatusEfetivo(r) === 'PAGO').reduce((acc, c) => acc + (parseFloat(c.valor) || 0), 0);
+            const despesaSaidaCaixa = pagarFiltrado.filter(p => getStatusEfetivo(p) === 'PAGO').reduce((acc, c) => acc + (parseFloat(c.valor) || 0), 0);
+            const saldoEfetivoCaixa = receitaEntrouCaixa - despesaSaidaCaixa;
+
+            const patrimonioEstoque = garantirArray(estoque).reduce((acc, p) => acc + ((parseFloat(p.qtd) || 0) * (parseFloat(p.precoCusto) || 0)), 0);
+
+            setText('cardReceberLabel', `Entrou no Caixa (${filtroDataAtivo})`);
+            setText('cardPagarLabel', `Saiu do Caixa (${filtroDataAtivo})`);
+            setText('dashTotalReceber', formatarMoeda(receitaEntrouCaixa));
+            setText('dashTotalPagar', formatarMoeda(despesaSaidaCaixa));
+            setText('dashSaldoPrevisto', formatarMoeda(saldoEfetivoCaixa));
+            setText('dashValorEstoque', formatarMoeda(patrimonioEstoque));
+
+            const proximosTable = document.getElementById('tableProximosVencimentos');
+            if (proximosTable) {
+                const uniao = [
+                    ...pagarFiltrado.map(p => ({ ...p, tipoConta: 'SAIDA', nome: sanitizarTexto(p.fornecedor, 'Fornecedor') })),
+                    ...receberFiltrado.map(r => ({ ...r, tipoConta: 'ENTRADA', nome: sanitizarTexto(r.cliente, 'Cliente') }))
+                ].sort((a, b) => String(a.vencimento).localeCompare(String(b.vencimento))).slice(0, 5);
+
+                if (uniao.length === 0) {
+                    proximosTable.innerHTML = `<tr><td colspan="5" style="text-align:center;">Nenhum lançamento no período.</td></tr>`;
+                } else {
+                    proximosTable.innerHTML = uniao.map(item => {
+                        const stEfetivo = getStatusEfetivo(item);
+                        return `
+                            <tr>
+                                <td>${formatarDataBR(item.vencimento)}</td>
+                                <td><span class="badge ${item.tipoConta === 'ENTRADA' ? 'badge-success' : 'badge-danger'}">${item.tipoConta}</span></td>
+                                <td><strong>${item.nome}</strong></td>
+                                <td class="${item.tipoConta === 'ENTRADA' ? 'text-success' : 'text-danger'} font-bold">${formatarMoeda(item.valor)}</td>
+                                <td><span class="status ${stEfetivo.toLowerCase()}">${stEfetivo}</span></td>
+                            </tr>
+                        `;
+                    }).join('');
+                }
+            }
+
+            const painelAlertas = document.getElementById('painelAlertasEstoque');
+            if (painelAlertas) {
+                const itensCriticos = garantirArray(estoque).filter(p => p.qtd <= p.qtdMin);
+                if (itensCriticos.length === 0) {
+                    painelAlertas.innerHTML = `<p class="text-success font-bold"><i class="fas fa-check-circle"></i> Todos os produtos com estoque saudável!</p>`;
+                } else {
+                    painelAlertas.innerHTML = itensCriticos.map(p => `
+                        <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid #eee;">
+                            <div>
+                                <strong>${p.sku} - ${sanitizarTexto(p.nome, 'Produto')}</strong><br>
+                                <small>Qtd: <b class="text-danger">${p.qtd}</b> / Mín: ${p.qtdMin}</small>
+                            </div>
+                            <span class="badge badge-danger">${p.qtd === 0 ? 'ESGOTADO' : 'BAIXO'}</span>
+                        </div>
+                    `).join('');
+                }
+            }
+
+            renderizarGraficosSeguro(receberFiltrado, pagarFiltrado);
+        }
+
+        function renderizarGraficosSeguro(receberList, pagarList) {
+            if (typeof Chart === 'undefined') return;
+
+            try {
+                const ctxFluxo = document.getElementById('fluxoCaixaChart');
+                if (ctxFluxo && ctxFluxo.offsetParent !== null) {
+                    if (fluxoCaixaChartInstance) fluxoCaixaChartInstance.destroy();
+
+                    const recPago = receberList.filter(r => getStatusEfetivo(r) === 'PAGO').reduce((acc, c) => acc + (parseFloat(c.valor) || 0), 0);
+                    const pagPago = pagarList.filter(p => getStatusEfetivo(p) === 'PAGO').reduce((acc, c) => acc + (parseFloat(c.valor) || 0), 0);
+
+                    fluxoCaixaChartInstance = new Chart(ctxFluxo.getContext('2d'), {
+                        type: 'bar',
+                        data: {
+                            labels: ['Entradas Realizadas (Caixa)', 'Saídas Realizadas (Caixa)'],
+                            datasets: [{
+                                label: 'Valor Total (R$)',
+                                data: [recPago, pagPago],
+                                backgroundColor: ['#2ecc71', '#e74c3c'],
+                                borderRadius: 6
+                            }]
+                        },
+                        options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+                    });
+                }
+
+                const ctxCusto = document.getElementById('centroCustoChart');
+                if (ctxCusto && ctxCusto.offsetParent !== null) {
+                    if (centroCustoChartInstance) centroCustoChartInstance.destroy();
+
+                    const categoriasMap = {};
+                    pagarList.forEach(p => {
+                        const cat = sanitizarTexto(p.categoria, 'Outros');
+                        categoriasMap[cat] = (categoriasMap[cat] || 0) + (parseFloat(p.valor) || 0);
+                    });
+
+                    const labels = Object.keys(categoriasMap);
+                    const data = Object.values(categoriasMap);
+
+                    centroCustoChartInstance = new Chart(ctxCusto.getContext('2d'), {
+                        type: 'doughnut',
+                        data: {
+                            labels: labels.length ? labels : ['Sem Saídas'],
+                            datasets: [{
+                                data: data.length ? data : [1],
+                                backgroundColor: ['#FFD500', '#111111', '#e74c3c', '#3498db', '#9b59b6'],
+                                borderWidth: 0
+                            }]
+                        },
+                        options: { responsive: true, plugins: { legend: { position: 'bottom' } }, cutout: '70%' }
+                    });
+                }
+            } catch (err) {
+                console.warn("Aviso ao desenhar gráficos:", err);
+            }
+        }
+
+        function renderizarContasPagar() {
+            const tbody = document.getElementById('tableContasPagar');
+            if (!tbody) return;
+
+            const termo = (document.getElementById('searchPagar')?.value || '').trim().toLowerCase();
+            const statusFiltro = (document.getElementById('filterStatusPagar')?.value || 'todos').toLowerCase();
+
+            let filtradas = filtrarPorPeriodo(contasPagar);
+
+            if (termo !== '') {
+                filtradas = filtradas.filter(p => 
+                    (p.fornecedor && String(p.fornecedor).toLowerCase().includes(termo)) || 
+                    (p.descricao && String(p.descricao).toLowerCase().includes(termo)) ||
+                    (p.categoria && String(p.categoria).toLowerCase().includes(termo))
+                );
+            }
+
+            if (statusFiltro !== 'todos') {
+                filtradas = filtradas.filter(p => getStatusEfetivo(p).toLowerCase() === statusFiltro);
+            }
+
+            const totalSomaFiltro = filtradas.reduce((acc, p) => acc + (parseFloat(p.valor) || 0), 0);
+            setText('totalPagarFiltrado', `Total do Filtro: ${formatarMoeda(totalSomaFiltro)}`);
+
+            if (filtradas.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;">Nenhuma conta a pagar encontrada.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = filtradas.map(p => {
+                const stEfetivo = getStatusEfetivo(p);
+                const fornecedorTxt = sanitizarTexto(p.fornecedor, 'Fornecedor');
+                const categoriaTxt = sanitizarTexto(p.categoria, 'Geral');
+
+                return `
+                    <tr>
+                        <td>${formatarDataBR(p.vencimento)}</td>
+                        <td><strong>${fornecedorTxt}</strong></td>
+                        <td>${p.descricao}</td>
+                        <td class="text-danger font-bold">${formatarMoeda(p.valor)}</td>
+                        <td><span class="category-badge">${categoriaTxt}</span></td>
+                        <td><span class="status ${stEfetivo.toLowerCase()}">${stEfetivo}</span></td>
+                        <td>${formatarDataBR(p.dataPagamento)}</td>
+                        <td>
+                            ${stEfetivo !== 'PAGO' ? `<button type="button" class="btn-action btn-success" title="Dar Baixa" onclick="window.darBaixaPagar('${p.id}')"><i class="fas fa-check"></i> Pago</button>` : ''}
+                            <button type="button" class="btn-action btn-secondary" title="Editar" onclick="window.editarPagar('${p.id}')"><i class="fas fa-edit"></i></button>
+                            <button type="button" class="btn-action btn-danger" title="Excluir" onclick="window.excluirPagar('${p.id}')"><i class="fas fa-trash"></i></button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function renderizarContasReceber() {
+            const tbody = document.getElementById('tableContasReceber');
+            if (!tbody) return;
+
+            const termo = (document.getElementById('searchReceber')?.value || '').trim().toLowerCase();
+            const statusFiltro = (document.getElementById('filterStatusReceber')?.value || 'todos').toLowerCase();
+
+            let filtradas = filtrarPorPeriodo(contasReceber);
+
+            if (termo !== '') {
+                filtradas = filtradas.filter(r => 
+                    (r.cliente && String(r.cliente).toLowerCase().includes(termo)) || 
+                    (r.descricao && String(r.descricao).toLowerCase().includes(termo)) ||
+                    (r.categoria && String(r.categoria).toLowerCase().includes(termo))
+                );
+            }
+
+            if (statusFiltro !== 'todos') {
+                filtradas = filtradas.filter(r => getStatusEfetivo(r).toLowerCase() === statusFiltro);
+            }
+
+            const totalSomaFiltro = filtradas.reduce((acc, r) => acc + (parseFloat(r.valor) || 0), 0);
+            setText('totalReceberFiltrado', `Total do Filtro: ${formatarMoeda(totalSomaFiltro)}`);
+
+            if (filtradas.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;">Nenhuma conta a receber encontrada.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = filtradas.map(r => {
+                const stEfetivo = getStatusEfetivo(r);
+                const clienteTxt = sanitizarTexto(r.cliente, 'Cliente');
+                const categoriaTxt = sanitizarTexto(r.categoria, 'Reparos');
+
+                return `
+                    <tr>
+                        <td>${formatarDataBR(r.vencimento)}</td>
+                        <td><strong>${clienteTxt}</strong></td>
+                        <td>${r.descricao}</td>
+                        <td class="text-success font-bold">${formatarMoeda(r.valor)}</td>
+                        <td><span class="category-badge">${categoriaTxt}</span></td>
+                        <td><span class="status ${stEfetivo.toLowerCase()}">${stEfetivo}</span></td>
+                        <td>${formatarDataBR(r.dataPagamento)}</td>
+                        <td>
+                            ${stEfetivo !== 'PAGO' ? `<button type="button" class="btn-action btn-success" title="Dar Baixa" onclick="window.darBaixaReceber('${r.id}')"><i class="fas fa-check"></i> Pago</button>` : ''}
+                            <button type="button" class="btn-action btn-secondary" title="Editar" onclick="window.editarReceber('${r.id}')"><i class="fas fa-edit"></i></button>
+                            <button type="button" class="btn-action btn-danger" title="Excluir" onclick="window.excluirReceber('${r.id}')"><i class="fas fa-trash"></i></button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function darBaixaPagar(id) {
+            contasPagar = garantirArray(contasPagar);
+            const item = contasPagar.find(p => String(p.id) === String(id));
+            if (item) {
+                item.status = 'PAGO';
+                item.dataPagamento = new Date().toISOString().split('T')[0];
+
+                salvarDadosLocal();
+                renderizarTudo();
+            }
+        }
+
+        function darBaixaReceber(id) {
+            contasReceber = garantirArray(contasReceber);
+            const item = contasReceber.find(r => String(r.id) === String(id));
+            if (item) {
+                item.status = 'PAGO';
+                item.dataPagamento = new Date().toISOString().split('T')[0];
+
+                salvarDadosLocal();
+                renderizarTudo();
+            }
+        }
+
+        function salvarContaPagar(event) {
+            if (event) event.preventDefault();
+            const id = document.getElementById('pagId')?.value;
+            const conta = {
+                id: id ? String(id) : Date.now().toString(),
+                fornecedor: (document.getElementById('pagFornecedor')?.value || '').trim(),
+                descricao: (document.getElementById('pagDescricao')?.value || '').trim(),
+                valor: parseFloat(document.getElementById('pagValor')?.value) || 0,
+                vencimento: document.getElementById('pagVencimento')?.value,
+                categoria: document.getElementById('pagCategoria')?.value,
+                status: document.getElementById('pagStatus')?.value,
+                dataPagamento: document.getElementById('pagDataPagamento')?.value,
+                tipoPagamento: document.getElementById('pagTipoPagamento')?.value
+            };
+
+            contasPagar = garantirArray(contasPagar);
+            if (id) {
+                const idx = contasPagar.findIndex(p => String(p.id) === String(id));
+                if (idx !== -1) contasPagar[idx] = conta;
+            } else {
+                contasPagar.push(conta);
+            }
+
+            salvarDadosLocal();
+            fecharModal('modalSaida');
+            renderizarTudo();
+        }
+
+        function salvarContaReceber(event) {
+            if (event) event.preventDefault();
+            const id = document.getElementById('entId')?.value;
+            const conta = {
+                id: id ? String(id) : Date.now().toString(),
+                cliente: (document.getElementById('entCliente')?.value || '').trim(),
+                descricao: (document.getElementById('entDescricao')?.value || '').trim(),
+                valor: parseFloat(document.getElementById('entValor')?.value) || 0,
+                vencimento: document.getElementById('entVencimento')?.value,
+                categoria: document.getElementById('entCategoria')?.value,
+                status: document.getElementById('entStatus')?.value,
+                dataPagamento: document.getElementById('entDataPagamento')?.value,
+                tipoPagamento: document.getElementById('entTipoPagamento')?.value
+            };
+
+            contasReceber = garantirArray(contasReceber);
+            if (id) {
+                const idx = contasReceber.findIndex(r => String(r.id) === String(id));
+                if (idx !== -1) contasReceber[idx] = conta;
+            } else {
+                contasReceber.push(conta);
+            }
+
+            salvarDadosLocal();
+            fecharModal('modalEntrada');
+            renderizarTudo();
+        }
+
+        function editarPagar(id) {
+            const p = garantirArray(contasPagar).find(item => String(item.id) === String(id));
+            if (!p) return;
+
+            if (document.getElementById('pagId')) document.getElementById('pagId').value = p.id;
+            if (document.getElementById('pagFornecedor')) document.getElementById('pagFornecedor').value = sanitizarTexto(p.fornecedor, '');
+            if (document.getElementById('pagDescricao')) document.getElementById('pagDescricao').value = p.descricao;
+            if (document.getElementById('pagValor')) document.getElementById('pagValor').value = p.valor;
+            if (document.getElementById('pagVencimento')) document.getElementById('pagVencimento').value = p.vencimento;
+            if (document.getElementById('pagCategoria')) document.getElementById('pagCategoria').value = sanitizarTexto(p.categoria, 'Custos Fixos');
+            if (document.getElementById('pagStatus')) document.getElementById('pagStatus').value = p.status;
+            if (document.getElementById('pagDataPagamento')) document.getElementById('pagDataPagamento').value = p.dataPagamento || '';
+            if (document.getElementById('pagTipoPagamento')) document.getElementById('pagTipoPagamento').value = p.tipoPagamento || 'PIX';
+
+            abrirModal('modalSaida');
+        }
+
+        function excluirPagar(id) {
+            if (confirm('Deseja realmente excluir esta conta a pagar?')) {
+                contasPagar = garantirArray(contasPagar).filter(p => String(p.id) !== String(id));
+                salvarDadosLocal();
+                renderizarTudo();
+            }
+        }
+
+        function editarReceber(id) {
+            const r = garantirArray(contasReceber).find(item => String(item.id) === String(id));
+            if (!r) return;
+
+            if (document.getElementById('entId')) document.getElementById('entId').value = r.id;
+            if (document.getElementById('entCliente')) document.getElementById('entCliente').value = sanitizarTexto(r.cliente, '');
+            if (document.getElementById('entDescricao')) document.getElementById('entDescricao').value = r.descricao;
+            if (document.getElementById('entValor')) document.getElementById('entValor').value = r.valor;
+            if (document.getElementById('entVencimento')) document.getElementById('entVencimento').value = r.vencimento;
+            if (document.getElementById('entCategoria')) document.getElementById('entCategoria').value = sanitizarTexto(r.categoria, 'Reparos');
+            if (document.getElementById('entStatus')) document.getElementById('entStatus').value = r.status;
+            if (document.getElementById('entDataPagamento')) document.getElementById('entDataPagamento').value = r.dataPagamento || '';
+            if (document.getElementById('entTipoPagamento')) document.getElementById('entTipoPagamento').value = r.tipoPagamento || 'PIX';
+
+            abrirModal('modalEntrada');
+        }
+
+        function excluirReceber(id) {
+            if (confirm('Deseja realmente excluir esta conta a receber?')) {
+                contasReceber = garantirArray(contasReceber).filter(r => String(r.id) !== String(id));
+                salvarDadosLocal();
+                renderizarTudo();
+            }
+        }
+
+        function renderizarEstoque() {
+            const tbody = document.getElementById('tableEstoque');
+            if (!tbody) return;
+
+            const termo = (document.getElementById('searchEstoque')?.value || '').trim().toLowerCase();
+            const filtroAlerta = (document.getElementById('filterAlertaEstoque')?.value || 'todos').toLowerCase();
+
+            let filtrados = [...garantirArray(estoque)];
+
+            if (termo !== '') {
+                filtrados = filtrados.filter(p => 
+                    (p.sku && String(p.sku).toLowerCase().includes(termo)) || 
+                    (p.nome && String(p.nome).toLowerCase().includes(termo))
+                );
+            }
+
+            if (filtroAlerta === 'alerta') {
+                filtrados = filtrados.filter(p => p.qtd <= p.qtdMin && p.qtd > 0);
+            } else if (filtroAlerta === 'zerado') {
+                filtrados = filtrados.filter(p => p.qtd === 0);
+            }
+
+            const patrimonioTotal = garantirArray(estoque).reduce((acc, p) => acc + (p.qtd * p.precoCusto), 0);
+            const totalCriticos = garantirArray(estoque).filter(p => p.qtd <= p.qtdMin).length;
+
+            setText('stkPatrimonioTotal', formatarMoeda(patrimonioTotal));
+            setText('stkTotalSkus', estoque.length);
+            setText('stkTotalAlertas', totalCriticos);
+
+            if (filtrados.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;">Nenhum produto cadastrado no estoque.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = filtrados.map(p => {
+                const margemLucro = p.precoCusto > 0 ? (((p.precoVenda - p.precoCusto) / p.precoCusto) * 100).toFixed(1) : 0;
+                const totalInvestidoItem = p.qtd * p.precoCusto;
+                const isBaixo = p.qtd <= p.qtdMin;
+
+                return `
+                    <tr>
+                        <td><strong>${p.sku}</strong></td>
+                        <td>${sanitizarTexto(p.nome, 'Produto')}</td>
+                        <td><span class="category-badge">${sanitizarTexto(p.categoria, 'Geral')}</span></td>
+                        <td class="${isBaixo ? 'text-danger font-bold' : ''}">${p.qtd} ${isBaixo ? '<i class="fas fa-exclamation-circle"></i>' : ''}</td>
+                        <td>${p.qtdMin}</td>
+                        <td>${formatarMoeda(p.precoCusto)}</td>
+                        <td>${formatarMoeda(p.precoVenda)}</td>
+                        <td><span class="badge badge-success">+${margemLucro}%</span></td>
+                        <td><strong>${formatarMoeda(totalInvestidoItem)}</strong></td>
+                        <td>
+                            <button type="button" class="btn-action btn-primary" title="Movimentar (+/-)" onclick="window.abrirModalMovimentacao('${p.id}')"><i class="fas fa-exchange-alt"></i></button>
+                            <button type="button" class="btn-action btn-secondary" title="Editar" onclick="window.editarProduto('${p.id}')"><i class="fas fa-edit"></i></button>
+                            <button type="button" class="btn-action btn-danger" title="Excluir" onclick="window.excluirProduto('${p.id}')"><i class="fas fa-trash"></i></button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function salvarProduto(event) {
+            if (event) event.preventDefault();
+            const id = document.getElementById('prodId')?.value;
+            const prod = {
+                id: id ? String(id) : Date.now().toString(),
+                sku: (document.getElementById('prodSku')?.value || '').trim(),
+                categoria: (document.getElementById('prodCategoria')?.value || '').trim(),
+                nome: (document.getElementById('prodNome')?.value || '').trim(),
+                qtd: parseInt(document.getElementById('prodQtd')?.value, 10) || 0,
+                qtdMin: parseInt(document.getElementById('prodQtdMin')?.value, 10) || 0,
+                precoCusto: parseFloat(document.getElementById('prodPrecoCusto')?.value) || 0,
+                precoVenda: parseFloat(document.getElementById('prodPrecoVenda')?.value) || 0
+            };
+
+            estoque = garantirArray(estoque);
+            if (id) {
+                const idx = estoque.findIndex(p => String(p.id) === String(id));
+                if (idx !== -1) estoque[idx] = prod;
+            } else {
+                estoque.push(prod);
+            }
+
+            salvarDadosLocal();
+            fecharModal('modalProduto');
+            renderizarTudo();
+        }
+
+        function editarProduto(id) {
+            const p = garantirArray(estoque).find(item => String(item.id) === String(id));
+            if (!p) return;
+
+            if (document.getElementById('prodId')) document.getElementById('prodId').value = p.id;
+            if (document.getElementById('prodSku')) document.getElementById('prodSku').value = p.sku;
+            if (document.getElementById('prodCategoria')) document.getElementById('prodCategoria').value = sanitizarTexto(p.categoria, '');
+            if (document.getElementById('prodNome')) document.getElementById('prodNome').value = sanitizarTexto(p.nome, '');
+            if (document.getElementById('prodQtd')) document.getElementById('prodQtd').value = p.qtd;
+            if (document.getElementById('prodQtdMin')) document.getElementById('prodQtdMin').value = p.qtdMin;
+            if (document.getElementById('prodPrecoCusto')) document.getElementById('prodPrecoCusto').value = p.precoCusto;
+            if (document.getElementById('prodPrecoVenda')) document.getElementById('prodPrecoVenda').value = p.precoVenda;
+
+            abrirModal('modalProduto');
+        }
+
+        function excluirProduto(id) {
+            if (confirm('Deseja realmente remover este item do estoque?')) {
+                estoque = garantirArray(estoque).filter(p => String(p.id) !== String(id));
+                salvarDadosLocal();
+                renderizarTudo();
+            }
+        }
+
+        function abrirModalMovimentacao(id) {
+            const p = garantirArray(estoque).find(item => String(item.id) === String(id));
+            if (!p) return;
+
+            if (document.getElementById('movProdId')) document.getElementById('movProdId').value = p.id;
+            setText('movItemInfo', `Item: ${p.sku} - ${sanitizarTexto(p.nome, 'Produto')} (Qtd Atual: ${p.qtd})`);
+            abrirModal('modalMovimentacao');
+        }
+
+        function salvarMovimentacaoEstoque(event) {
+            if (event) event.preventDefault();
+            const id = document.getElementById('movProdId')?.value;
+            const tipo = document.getElementById('movTipo')?.value;
+            const qtd = parseInt(document.getElementById('movQtd')?.value, 10) || 0;
+
+            const p = garantirArray(estoque).find(item => String(item.id) === String(id));
+            if (p) {
+                if (tipo === 'SAIDA' && p.qtd < qtd) {
+                    alert('Quantidade insuficiente em estoque!');
+                    return;
+                }
+                p.qtd = tipo === 'ENTRADA' ? p.qtd + qtd : p.qtd - qtd;
+                salvarDadosLocal();
+                fecharModal('modalMovimentacao');
+                renderizarTudo();
+            }
+        }
+
+        function renderizarDRE() {
+            setText('drePeriodoText', filtroDataAtivo);
+
+            const receberFiltrado = filtrarPorPeriodo(contasReceber);
+            const pagarFiltrado = filtrarPorPeriodo(contasPagar);
+
+            const receitaEntrouCaixa = receberFiltrado.filter(r => getStatusEfetivo(r) === 'PAGO').reduce((acc, c) => acc + (parseFloat(c.valor) || 0), 0);
+            const despesaPagoCaixa = pagarFiltrado.filter(p => getStatusEfetivo(p) === 'PAGO').reduce((acc, c) => acc + (parseFloat(c.valor) || 0), 0);
+            const resultadoRealCaixa = receitaEntrouCaixa - despesaPagoCaixa;
+
+            const receitaPrevistaPendente = receberFiltrado.filter(r => getStatusEfetivo(r) !== 'PAGO').reduce((acc, c) => acc + (parseFloat(c.valor) || 0), 0);
+            const despesaPrevistaPendente = pagarFiltrado.filter(p => getStatusEfetivo(p) !== 'PAGO').reduce((acc, c) => acc + (parseFloat(c.valor) || 0), 0);
+            
+            const receitaTotalProjetada = receitaEntrouCaixa + receitaPrevistaPendente;
+            const despesaTotalProjetada = despesaPagoCaixa + despesaPrevistaPendente;
+            const resultadoProjetadoTotal = receitaTotalProjetada - despesaTotalProjetada;
+
+            const margemReal = receitaEntrouCaixa > 0 ? ((resultadoRealCaixa / receitaEntrouCaixa) * 100).toFixed(1) : 0;
+
+            setText('dreReceitaRealizada', formatarMoeda(receitaEntrouCaixa));
+            setText('dreDespesasPagas', `- ${formatarMoeda(despesaPagoCaixa)}`);
+            setText('dreResultadoRealCaixa', formatarMoeda(resultadoRealCaixa));
+
+            setText('dreReceitaPendente', formatarMoeda(receitaPrevistaPendente));
+            setText('dreDespesaPendente', `- ${formatarMoeda(despesaPrevistaPendente)}`);
+            setText('dreResultadoProjetado', formatarMoeda(resultadoProjetadoTotal));
+
+            setText('dreMargemReal', `${margemReal}%`);
+        }
+
+        function lancamentoRapidoExtensao() {
+            const tipo = document.getElementById('extTipo')?.value;
+            const pessoa = (document.getElementById('extPessoa')?.value || '').trim();
+            const desc = (document.getElementById('extDescricao')?.value || '').trim();
+            const valor = parseFloat(document.getElementById('extValor')?.value) || 0;
+            const hoje = new Date().toISOString().split('T')[0];
+
+            if (tipo === 'RECEBER') {
+                contasReceber.push({
+                    id: Date.now().toString(),
+                    cliente: pessoa,
+                    descricao: desc,
+                    valor: valor,
+                    vencimento: hoje,
+                    categoria: 'Reparos',
+                    status: 'PENDENTE',
+                    dataPagamento: '',
+                    tipoPagamento: 'PIX'
+                });
+            } else {
+                contasPagar.push({
+                    id: Date.now().toString(),
+                    fornecedor: pessoa,
+                    descricao: desc,
+                    valor: valor,
+                    vencimento: hoje,
+                    categoria: 'Custos Fixos',
+                    status: 'PENDENTE',
+                    dataPagamento: '',
+                    tipoPagamento: 'PIX'
+                });
+            }
+
+            salvarDadosLocal();
+            alert('Lançamento efetuado com sucesso!');
+            if (document.getElementById('extPessoa')) document.getElementById('extPessoa').value = '';
+            if (document.getElementById('extDescricao')) document.getElementById('extDescricao').value = '';
+            if (document.getElementById('extValor')) document.getElementById('extValor').value = '';
+            renderizarTudo();
+        }
+
+        function exportarBackupJSON() {
+            const data = { contasPagar, contasReceber, estoque, exportDate: new Date().toISOString() };
+            const jsonStr = JSON.stringify(data, null, 2);
+            const blob = new Blob([jsonStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `ricpower_backup_${new Date().toISOString().slice(0, 10)}.json`;
+            a.click();
+        }
+
+        function importarBackupJSON(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if (data.contasPagar && data.contasReceber && data.estoque) {
+                        contasPagar = garantirArray(data.contasPagar);
+                        contasReceber = garantirArray(data.contasReceber);
+                        estoque = garantirArray(data.estoque);
+                        salvarDadosLocal();
+                        renderizarTudo();
+                        alert('Backup restaurado com sucesso!');
+                    } else {
+                        alert('Formato de ficheiro JSON inválido.');
+                    }
+                } catch (err) {
+                    alert('Erro ao processar o ficheiro JSON.');
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function exportarCSV(tipo) {
+            let csvContent = "data:text/csv;charset=utf-8,";
+            if (tipo === 'pagar') {
+                csvContent += "Vencimento;Fornecedor;Descrição;Valor;Categoria;Status\n";
+                garantirArray(contasPagar).forEach(p => {
+                    csvContent += `${p.vencimento};${p.fornecedor};${p.descricao};${p.valor};${p.categoria};${p.status}\n`;
+                });
+            } else {
+                csvContent += "Vencimento;Cliente;Descrição;Valor;Categoria;Status\n";
+                garantirArray(contasReceber).forEach(r => {
+                    csvContent += `${r.vencimento};${r.cliente};${r.descricao};${r.valor};${r.categoria};${r.status}\n`;
+                });
+            }
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `ricpower_${tipo}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function abrirModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal) modal.style.display = 'flex';
+        }
+
+        function fecharModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal) modal.style.display = 'none';
+        }
+
+        function abrirModalEntrada() {
+            const form = document.getElementById('formEntrada');
+            if (form) form.reset();
+            if (document.getElementById('entId')) document.getElementById('entId').value = '';
+            if (document.getElementById('entVencimento')) document.getElementById('entVencimento').value = new Date().toISOString().split('T')[0];
+            abrirModal('modalEntrada');
+        }
+
+        function abrirModalSaida() {
+            const form = document.getElementById('formSaida');
+            if (form) form.reset();
+            if (document.getElementById('pagId')) document.getElementById('pagId').value = '';
+            if (document.getElementById('pagVencimento')) document.getElementById('pagVencimento').value = new Date().toISOString().split('T')[0];
+            abrirModal('modalSaida');
+        }
+
+        function abrirModalProduto() {
+            const form = document.getElementById('formProduto');
+            if (form) form.reset();
+            if (document.getElementById('prodId')) document.getElementById('prodId').value = '';
+            abrirModal('modalProduto');
+        }
+
+        window.darBaixaPagar = darBaixaPagar;
+        window.darBaixaReceber = darBaixaReceber;
+        window.editarPagar = editarPagar;
+        window.excluirPagar = excluirPagar;
+        window.editarReceber = editarReceber;
+        window.excluirReceber = excluirReceber;
+        window.editarProduto = editarProduto;
+        window.excluirProduto = excluirProduto;
+        window.abrirModalMovimentacao = abrirModalMovimentacao;
+        window.preencherEEntrar = preencherEEntrar;
+
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal')) {
+                event.target.style.display = 'none';
+            }
+            if (!event.target.closest('.modern-filter-container')) {
+                const dropdown = document.getElementById('dateFilterDropdown');
+                if (dropdown && dropdown.classList.contains('show')) dropdown.classList.remove('show');
+            }
+        };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            verificarSessao();
+        });
+    </script>
+</body>
+</html>
