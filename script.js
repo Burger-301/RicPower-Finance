@@ -1,4 +1,4 @@
-// Função para obter data formatada do mês atual YYYY-MM
+// CONFIGURAÇÃO E DADOS LOCAIS
 const getMesAtualStr = () => {
     const d = new Date();
     const y = d.getFullYear();
@@ -8,7 +8,7 @@ const getMesAtualStr = () => {
 
 const mesAtual = getMesAtualStr();
 
-// Dados com armazenamento local automático
+// Carregamento com backup local (localStorage)
 let contasPagar = JSON.parse(localStorage.getItem('ricpower_pagar')) || [
     { id: '1', vencimento: `${mesAtual}-15`, fornecedor: 'RGE Energia', descricao: 'Conta de Energia Elétrica', valor: 1000.00, categoria: 'Custos Fixos', status: 'PAGO', dataPagamento: `${mesAtual}-15`, tipoPagamento: 'PIX' },
     { id: '2', vencimento: `${mesAtual}-21`, fornecedor: 'AliExpress', descricao: 'Lote de Placas e Chips', valor: 850.00, categoria: 'Peças Novas', status: 'PENDENTE', dataPagamento: '', tipoPagamento: 'PIX' },
@@ -17,14 +17,12 @@ let contasPagar = JSON.parse(localStorage.getItem('ricpower_pagar')) || [
 
 let contasReceber = JSON.parse(localStorage.getItem('ricpower_receber')) || [
     { id: '1', vencimento: `${mesAtual}-18`, cliente: 'Gabi', descricao: 'Reparo de GPU RTX 3080', valor: 450.00, categoria: 'Reparos', status: 'PAGO', dataPagamento: `${mesAtual}-18`, tipoPagamento: 'PIX' },
-    { id: '2', vencimento: `${mesAtual}-20`, cliente: 'Yuri', descricao: 'Troca de Telas e Peças', valor: 280.00, categoria: 'Peças Novas', status: 'PENDENTE', dataPagamento: '', tipoPagamento: 'PIX' },
-    { id: '3', vencimento: `${mesAtual}-25`, cliente: 'Oficina Central', descricao: 'Lote de Serviços de Solda', valor: 7720.00, categoria: 'Reparos', status: 'PENDENTE', dataPagamento: '', tipoPagamento: 'Cartão' }
+    { id: '2', vencimento: `${mesAtual}-20`, cliente: 'Yuri', descricao: 'Troca de Telas e Peças', valor: 280.00, categoria: 'Peças Novas', status: 'PENDENTE', dataPagamento: '', tipoPagamento: 'PIX' }
 ];
 
 let estoque = JSON.parse(localStorage.getItem('ricpower_estoque')) || [
     { id: '1', sku: 'PEC-001', nome: 'Chip Mosfet VRM 40V', categoria: 'Componentes', qtd: 14, qtdMin: 10, precoCusto: 12.50, precoVenda: 45.00 },
-    { id: '2', sku: 'PEC-002', nome: 'Pasta Térmica Alta Condutividade', categoria: 'Insumos', qtd: 3, qtdMin: 5, precoCusto: 35.00, precoVenda: 90.00 },
-    { id: '3', sku: 'PEC-003', nome: 'Capacitor Sólido 16V 470uF', categoria: 'Componentes', qtd: 0, qtdMin: 20, precoCusto: 2.10, precoVenda: 10.00 }
+    { id: '2', sku: 'PEC-002', nome: 'Pasta Térmica Alta Condutividade', categoria: 'Insumos', qtd: 3, qtdMin: 5, precoCusto: 35.00, precoVenda: 90.00 }
 ];
 
 let filtroDataAtivo = 'Este Mês';
@@ -93,7 +91,6 @@ function iniciarAplicacao() {
     document.getElementById('loginScreen').style.display = 'none';
     document.getElementById('appScreen').style.display = 'flex';
     document.getElementById('userEmailDisplay').innerText = localStorage.getItem('ricpower_logged_user') || 'admin@richard.com';
-    
     renderizarTudo();
 }
 
@@ -338,7 +335,7 @@ function renderizarGraficosSeguro(receberList, pagarList) {
     }
 }
 
-/* 5. TABELAS DE PAGAR E RECEBER COM BOTÕES ESTILIZADOS */
+/* 5. TABELA DE CONTAS A PAGAR */
 function renderizarContasPagar() {
     const tbody = document.getElementById('tableContasPagar');
     if (!tbody) return;
@@ -417,9 +414,9 @@ function renderizarContasReceber() {
     `).join('');
 }
 
-/* 6. AÇÕES DE CADASTRO E EDIÇÃO */
+/* 6. SALVAR E MANTÊ-LOS VISÍVEIS */
 function salvarContaPagar(event) {
-    event.preventDefault();
+    if (event) event.preventDefault();
     const id = document.getElementById('pagId').value;
     const conta = {
         id: id || Date.now().toString(),
@@ -440,9 +437,23 @@ function salvarContaPagar(event) {
         contasPagar.push(conta);
     }
 
+    // Se a data for de outro mês, muda o filtro para 'Todos os Registros' para o usuário visualizar
+    const dtItem = new Date(conta.vencimento + 'T00:00:00');
+    const agora = new Date();
+    if (filtroDataAtivo === 'Este Mês' && (dtItem.getFullYear() !== agora.getFullYear() || dtItem.getMonth() !== agora.getMonth())) {
+        filtroDataAtivo = 'Todos os Registros';
+        const txtEl = document.getElementById('currentPeriodText');
+        if (txtEl) txtEl.innerText = 'Todos os Registros';
+    }
+
+    // Limpa busca para garantir que apareça na tabela
+    const searchP = document.getElementById('searchPagar');
+    if (searchP) searchP.value = '';
+
     salvarDadosLocal();
     fecharModal('modalSaida');
     renderizarTudo();
+    alert('Saída (Conta a Pagar) salva com sucesso!');
 }
 
 function darBaixaPagar(id) {
@@ -481,7 +492,7 @@ function excluirPagar(id) {
 }
 
 function salvarContaReceber(event) {
-    event.preventDefault();
+    if (event) event.preventDefault();
     const id = document.getElementById('entId').value;
     const conta = {
         id: id || Date.now().toString(),
@@ -502,9 +513,21 @@ function salvarContaReceber(event) {
         contasReceber.push(conta);
     }
 
+    const dtItem = new Date(conta.vencimento + 'T00:00:00');
+    const agora = new Date();
+    if (filtroDataAtivo === 'Este Mês' && (dtItem.getFullYear() !== agora.getFullYear() || dtItem.getMonth() !== agora.getMonth())) {
+        filtroDataAtivo = 'Todos os Registros';
+        const txtEl = document.getElementById('currentPeriodText');
+        if (txtEl) txtEl.innerText = 'Todos os Registros';
+    }
+
+    const searchR = document.getElementById('searchReceber');
+    if (searchR) searchR.value = '';
+
     salvarDadosLocal();
     fecharModal('modalEntrada');
     renderizarTudo();
+    alert('Entrada (Conta a Receber) salva com sucesso!');
 }
 
 function darBaixaReceber(id) {
@@ -601,7 +624,7 @@ function renderizarEstoque() {
 }
 
 function salvarProduto(event) {
-    event.preventDefault();
+    if (event) event.preventDefault();
     const id = document.getElementById('prodId').value;
     const prod = {
         id: id || Date.now().toString(),
@@ -624,6 +647,7 @@ function salvarProduto(event) {
     salvarDadosLocal();
     fecharModal('modalProduto');
     renderizarTudo();
+    alert('Produto salvo com sucesso!');
 }
 
 function editarProduto(id) {
@@ -660,7 +684,7 @@ function abrirModalMovimentacao(id) {
 }
 
 function salvarMovimentacaoEstoque(event) {
-    event.preventDefault();
+    if (event) event.preventDefault();
     const id = document.getElementById('movProdId').value;
     const tipo = document.getElementById('movTipo').value;
     const qtd = parseInt(document.getElementById('movQtd').value) || 0;
@@ -680,7 +704,8 @@ function salvarMovimentacaoEstoque(event) {
 
 /* 8. DEMONSTRATIVO DRE */
 function renderizarDRE() {
-    document.getElementById('drePeriodoText').innerText = filtroDataAtivo;
+    const elText = document.getElementById('drePeriodoText');
+    if (elText) elText.innerText = filtroDataAtivo;
 
     const receberFiltrado = filtrarPorPeriodo(contasReceber);
     const pagarFiltrado = filtrarPorPeriodo(contasPagar);
@@ -706,7 +731,6 @@ function lancamentoRapidoExtensao() {
     const pessoa = document.getElementById('extPessoa').value.trim();
     const desc = document.getElementById('extDescricao').value.trim();
     const valor = parseFloat(document.getElementById('extValor').value) || 0;
-
     const hoje = new Date().toISOString().split('T')[0];
 
     if (tipo === 'RECEBER') {
@@ -802,7 +826,7 @@ function exportarCSV(tipo) {
     document.body.removeChild(link);
 }
 
-/* 10. HELPERS PARA MODAIS */
+/* 10. HELPERS DE MODAIS COM PREENCHIMENTO DE DATA HOJE */
 function abrirModal(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) modal.style.display = 'flex';
@@ -816,12 +840,14 @@ function fecharModal(modalId) {
 function abrirModalEntrada() {
     document.getElementById('formEntrada').reset();
     document.getElementById('entId').value = '';
+    document.getElementById('entVencimento').value = new Date().toISOString().split('T')[0];
     abrirModal('modalEntrada');
 }
 
 function abrirModalSaida() {
     document.getElementById('formSaida').reset();
     document.getElementById('pagId').value = '';
+    document.getElementById('pagVencimento').value = new Date().toISOString().split('T')[0];
     abrirModal('modalSaida');
 }
 
@@ -841,7 +867,6 @@ window.onclick = function(event) {
     }
 };
 
-// Inicialização automática
 document.addEventListener('DOMContentLoaded', () => {
     verificarSessao();
 });
