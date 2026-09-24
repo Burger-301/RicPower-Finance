@@ -20,7 +20,6 @@
     <!-- ECRÃ DE LOGIN -->
     <div id="loginView" class="login-container">
         <div class="login-card">
-            <!-- LOGO EM IMAGEM NA TELA DE LOGIN -->
             <div class="login-logo">
                 <img src="logo.png" alt="RICPOWER Logo" style="max-width: 200px; height: auto; margin-bottom: 10px;">
             </div>
@@ -45,7 +44,6 @@
         <!-- SIDEBAR -->
         <aside class="sidebar">
             <div class="sidebar-header">
-                <!-- LOGO EM IMAGEM NO MENU LATERAL -->
                 <div class="logo">
                     <img src="logo.png" alt="RICPOWER Logo" style="max-width: 160px; height: auto;">
                 </div>
@@ -118,6 +116,7 @@
                 <div class="table-card">
                     <div class="table-header">
                         <h2>Contas a Pagar (Saídas)</h2>
+                        <button class="btn-add btn-danger" onclick="openModalPagar()"><i class="fas fa-plus"></i> Nova Conta a Pagar</button>
                     </div>
                     <table>
                         <thead>
@@ -141,6 +140,7 @@
                 <div class="table-card">
                     <div class="table-header">
                         <h2>Contas a Receber (Entradas)</h2>
+                        <button class="btn-add btn-success" onclick="openModalReceber()"><i class="fas fa-plus"></i> Nova Conta a Receber</button>
                     </div>
                     <table>
                         <thead>
@@ -164,6 +164,7 @@
                 <div class="table-card">
                     <div class="table-header">
                         <h2>Controle de Estoque (Peças)</h2>
+                        <button class="btn-add btn-primary" onclick="openModalEstoque()"><i class="fas fa-plus"></i> Novo Produto</button>
                     </div>
                     <table>
                         <thead>
@@ -200,6 +201,155 @@
                 </div>
             </section>
         </main>
+    </div>
+
+    <!-- MODAIS DE CADASTRO / EDIÇÃO -->
+    <!-- Modal Pagar -->
+    <div id="modalPagar" class="modal-overlay hidden">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3 id="titleModalPagar">Nova Conta a Pagar</h3>
+                <span class="modal-close" onclick="closeModal('modalPagar')">&times;</span>
+            </div>
+            <form onsubmit="savePagar(event)">
+                <input type="hidden" id="pagarId">
+                <div class="form-group">
+                    <label>Fornecedor</label>
+                    <input type="text" id="pagarPessoa" required placeholder="Ex: Imobiliária, RGE">
+                </div>
+                <div class="form-group">
+                    <label>Descrição</label>
+                    <input type="text" id="pagarDescricao" required placeholder="Ex: Aluguer, Luz">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Valor (R$)</label>
+                        <input type="number" step="0.01" id="pagarValor" required placeholder="0,00">
+                    </div>
+                    <div class="form-group">
+                        <label>Vencimento</label>
+                        <input type="date" id="pagarData" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Status</label>
+                        <select id="pagarStatus">
+                            <option value="PENDENTE">PENDENTE</option>
+                            <option value="ATRASADO">ATRASADO</option>
+                            <option value="PAGO">PAGO</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Centro de Custo</label>
+                        <select id="pagarCentro">
+                            <option value="ADMINISTRATIVO">ADMINISTRATIVO</option>
+                            <option value="PESSOAL">PESSOAL</option>
+                            <option value="CUSTOS FIXOS">CUSTOS FIXOS</option>
+                            <option value="PEÇAS & EQUIPAMENTOS">PEÇAS & EQUIPAMENTOS</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" onclick="closeModal('modalPagar')">Cancelar</button>
+                    <button type="submit" class="btn-primary">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Receber -->
+    <div id="modalReceber" class="modal-overlay hidden">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3 id="titleModalReceber">Nova Conta a Receber</h3>
+                <span class="modal-close" onclick="closeModal('modalReceber')">&times;</span>
+            </div>
+            <form onsubmit="saveReceber(event)">
+                <input type="hidden" id="receberId">
+                <div class="form-group">
+                    <label>Cliente</label>
+                    <input type="text" id="receberPessoa" required placeholder="Ex: João da Silva">
+                </div>
+                <div class="form-group">
+                    <label>Descrição</label>
+                    <input type="text" id="receberDescricao" required placeholder="Ex: Reparo de Placa">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Valor (R$)</label>
+                        <input type="number" step="0.01" id="receberValor" required placeholder="0,00">
+                    </div>
+                    <div class="form-group">
+                        <label>Vencimento</label>
+                        <input type="date" id="receberData" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Status</label>
+                        <select id="receberStatus">
+                            <option value="PENDENTE">PENDENTE</option>
+                            <option value="ATRASADO">ATRASADO</option>
+                            <option value="PAGO">PAGO</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Centro de Custo</label>
+                        <select id="receberCentro">
+                            <option value="SERVIÇOS">SERVIÇOS</option>
+                            <option value="COMERCIAL">COMERCIAL</option>
+                            <option value="PESSOAL">PESSOAL</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" onclick="closeModal('modalReceber')">Cancelar</button>
+                    <button type="submit" class="btn-primary">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Estoque -->
+    <div id="modalEstoque" class="modal-overlay hidden">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3 id="titleModalEstoque">Novo Produto no Estoque</h3>
+                <span class="modal-close" onclick="closeModal('modalEstoque')">&times;</span>
+            </div>
+            <form onsubmit="saveEstoque(event)">
+                <input type="hidden" id="estoqueId">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>SKU / Código</label>
+                        <input type="text" id="estoqueSku" required placeholder="Ex: PEC-003">
+                    </div>
+                    <div class="form-group">
+                        <label>Quantidade</label>
+                        <input type="number" id="estoqueQtd" required placeholder="0">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Nome do Produto / Peça</label>
+                    <input type="text" id="estoqueNome" required placeholder="Ex: Placa Mãe H61">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Preço Custo (R$)</label>
+                        <input type="number" step="0.01" id="estoqueCusto" required placeholder="0,00">
+                    </div>
+                    <div class="form-group">
+                        <label>Preço Venda (R$)</label>
+                        <input type="number" step="0.01" id="estoqueVenda" required placeholder="0,00">
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" onclick="closeModal('modalEstoque')">Cancelar</button>
+                    <button type="submit" class="btn-primary">Guardar</button>
+                </div>
+            </form>
+        </div>
     </div>
 
     <!-- FICHEIRO JAVASCRIPT SEPARADO -->
