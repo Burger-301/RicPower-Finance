@@ -1,4 +1,4 @@
-// 1. CONFIGURAÇÃO OFICIAL DO FIREBASE COM REALTIME DATABASE
+// 1. CONFIGURAÇÃO DO FIREBASE COM REALTIME DATABASE
 const firebaseConfig = {
   apiKey: "AIzaSyAMIo-e1IQVvoVNvHfjyCvQ3mpmA8XpEZU",
   authDomain: "ricpower-finance-4312b.firebaseapp.com",
@@ -9,7 +9,7 @@ const firebaseConfig = {
   appId: "1:632169254200:web:776e49224d4f61bc2e05cd"
 };
 
-// Inicialização da base de dados Firebase
+// Inicialização
 if (typeof firebase !== 'undefined' && !firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
 }
@@ -25,7 +25,7 @@ const getMesAtualStr = () => {
 
 const mesAtual = getMesAtualStr();
 
-// DADOS LOCAIS DE ARMAZENAMENTO E BACKUP
+// DADOS LOCAIS DE ARMAZENAMENTO
 let contasPagar = JSON.parse(localStorage.getItem('ricpower_pagar')) || [
     { id: '1', vencimento: `${mesAtual}-15`, fornecedor: 'RGE Energia', descricao: 'Conta de Energia Elétrica', valor: 1000.00, categoria: 'Custos Fixos', status: 'PAGO', dataPagamento: `${mesAtual}-15`, tipoPagamento: 'PIX' },
     { id: '2', vencimento: `${mesAtual}-21`, fornecedor: 'AliExpress', descricao: 'Lote de Placas e Chips', valor: 850.00, categoria: 'Peças Novas', status: 'PENDENTE', dataPagamento: '', tipoPagamento: 'PIX' },
@@ -48,7 +48,7 @@ let dataFimCustom = '';
 let fluxoCaixaChartInstance = null;
 let centroCustoChartInstance = null;
 
-// GUARDA LOCALMENTE E SINCRONIZA COM A NUVEM
+// ARMAZENAMENTO LOCAL E NUVEM (FIREBASE)
 function salvarDadosLocal(skipNuvem = false) {
     localStorage.setItem('ricpower_pagar', JSON.stringify(contasPagar));
     localStorage.setItem('ricpower_receber', JSON.stringify(contasReceber));
@@ -63,7 +63,7 @@ function salvarDadosLocal(skipNuvem = false) {
     }
 }
 
-// ESCUTA EM TEMPO REAL (SINCRONIZAÇÃO PC <-> TELEMÓVEL)
+// ESCUTA EM TEMPO REAL ENTRE DISPOSITIVOS
 function escutarSincronizacaoNuvem() {
     if (db) {
         db.ref('ricpower_dados').on('value', (snapshot) => {
@@ -73,10 +73,9 @@ function escutarSincronizacaoNuvem() {
                 contasReceber = dadosNuvem.contasReceber || [];
                 estoque = dadosNuvem.estoque || [];
 
-                salvarDadosLocal(true); // Atualiza localStorage sem duplicar envio
+                salvarDadosLocal(true);
                 renderizarTudo();
             } else {
-                // Se a nuvem estiver vazia na primeira execução, envia os dados locais
                 salvarDadosLocal();
             }
         });
@@ -94,7 +93,7 @@ function formatarDataBR(dataIso) {
     return `${partes[2]}/${partes[1]}/${partes[0]}`;
 }
 
-/* AUTENTICAÇÃO E SESSÃO */
+/* LOGIN E SESSÃO */
 function realizarLogin(event) {
     if (event) event.preventDefault();
     const email = document.getElementById('loginEmail').value.trim();
@@ -165,7 +164,7 @@ function showTab(tabId, navElement) {
     renderizarTudo();
 }
 
-/* FILTROS DE PERÍODO */
+/* FILTRO DE PERÍODO */
 function toggleDateFilter() {
     document.getElementById('dateFilterDropdown').classList.toggle('show');
 }
@@ -245,7 +244,7 @@ function filtrarPorPeriodo(lista, campoData = 'vencimento') {
     });
 }
 
-/* RENDERIZAÇÃO E GRÁFICOS */
+/* RENDERIZAÇÃO E DASHBOARD */
 function renderizarTudo() {
     renderizarDashboard();
     renderizarContasPagar();
@@ -370,7 +369,7 @@ function renderizarGraficosSeguro(receberList, pagarList) {
     }
 }
 
-/* TABELAS E OPERAÇÕES */
+/* CONTAS A PAGAR E RECEBER */
 function renderizarContasPagar() {
     const tbody = document.getElementById('tableContasPagar');
     if (!tbody) return;
@@ -402,7 +401,7 @@ function renderizarContasPagar() {
             <td><span class="status ${p.status.toLowerCase()}">${p.status}</span></td>
             <td>${formatarDataBR(p.dataPagamento)}</td>
             <td>
-                ${p.status !== 'PAGO' ? `<button class="btn-action btn-success" title="Dar Baixa" onclick="darBaixaPagar('${p.id}')"><i class="fas fa-check"></i></button>` : ''}
+                ${p.status !== 'PAGO' ? `<button class="btn-action btn-success" title="Dar Baixa" onclick="darBaixaPagar('${p.id}')"><i class="fas fa-check"></i> Pago</button>` : ''}
                 <button class="btn-action btn-secondary" title="Editar" onclick="editarPagar('${p.id}')"><i class="fas fa-edit"></i></button>
                 <button class="btn-action btn-danger" title="Excluir" onclick="excluirPagar('${p.id}')"><i class="fas fa-trash"></i></button>
             </td>
@@ -441,7 +440,7 @@ function renderizarContasReceber() {
             <td><span class="status ${r.status.toLowerCase()}">${r.status}</span></td>
             <td>${formatarDataBR(r.dataPagamento)}</td>
             <td>
-                ${r.status !== 'PAGO' ? `<button class="btn-action btn-success" title="Dar Baixa" onclick="darBaixaReceber('${r.id}')"><i class="fas fa-check"></i></button>` : ''}
+                ${r.status !== 'PAGO' ? `<button class="btn-action btn-success" title="Dar Baixa" onclick="darBaixaReceber('${r.id}')"><i class="fas fa-check"></i> Pago</button>` : ''}
                 <button class="btn-action btn-secondary" title="Editar" onclick="editarReceber('${r.id}')"><i class="fas fa-edit"></i></button>
                 <button class="btn-action btn-danger" title="Excluir" onclick="excluirReceber('${r.id}')"><i class="fas fa-trash"></i></button>
             </td>
@@ -449,11 +448,42 @@ function renderizarContasReceber() {
     `).join('');
 }
 
+/* DAR BAIXA (MARCAR COMO PAGO) - CORRIGIDO */
+function darBaixaPagar(id) {
+    const item = contasPagar.find(p => String(p.id) === String(id));
+    if (item) {
+        item.status = 'PAGO';
+        item.dataPagamento = new Date().toISOString().split('T')[0];
+
+        // Reseta o filtro para mostrar a conta atualizada
+        const filterStatusP = document.getElementById('filterStatusPagar');
+        if (filterStatusP) filterStatusP.value = 'todos';
+
+        salvarDadosLocal();
+        renderizarTudo();
+    }
+}
+
+function darBaixaReceber(id) {
+    const item = contasReceber.find(r => String(r.id) === String(id));
+    if (item) {
+        item.status = 'PAGO';
+        item.dataPagamento = new Date().toISOString().split('T')[0];
+
+        // Reseta o filtro para mostrar a conta atualizada
+        const filterStatusR = document.getElementById('filterStatusReceber');
+        if (filterStatusR) filterStatusR.value = 'todos';
+
+        salvarDadosLocal();
+        renderizarTudo();
+    }
+}
+
 function salvarContaPagar(event) {
     if (event) event.preventDefault();
     const id = document.getElementById('pagId').value;
     const conta = {
-        id: id || Date.now().toString(),
+        id: id ? String(id) : Date.now().toString(),
         fornecedor: document.getElementById('pagFornecedor').value.trim(),
         descricao: document.getElementById('pagDescricao').value.trim(),
         valor: parseFloat(document.getElementById('pagValor').value) || 0,
@@ -465,7 +495,7 @@ function salvarContaPagar(event) {
     };
 
     if (id) {
-        const idx = contasPagar.findIndex(p => p.id === id);
+        const idx = contasPagar.findIndex(p => String(p.id) === String(id));
         if (idx !== -1) contasPagar[idx] = conta;
     } else {
         contasPagar.push(conta);
@@ -483,7 +513,7 @@ function salvarContaReceber(event) {
     if (event) event.preventDefault();
     const id = document.getElementById('entId').value;
     const conta = {
-        id: id || Date.now().toString(),
+        id: id ? String(id) : Date.now().toString(),
         cliente: document.getElementById('entCliente').value.trim(),
         descricao: document.getElementById('entDescricao').value.trim(),
         valor: parseFloat(document.getElementById('entValor').value) || 0,
@@ -495,7 +525,7 @@ function salvarContaReceber(event) {
     };
 
     if (id) {
-        const idx = contasReceber.findIndex(r => r.id === id);
+        const idx = contasReceber.findIndex(r => String(r.id) === String(id));
         if (idx !== -1) contasReceber[idx] = conta;
     } else {
         contasReceber.push(conta);
@@ -509,18 +539,8 @@ function salvarContaReceber(event) {
     renderizarTudo();
 }
 
-function darBaixaPagar(id) {
-    const item = contasPagar.find(p => p.id === id);
-    if (item) {
-        item.status = 'PAGO';
-        item.dataPagamento = new Date().toISOString().split('T')[0];
-        salvarDadosLocal();
-        renderizarTudo();
-    }
-}
-
 function editarPagar(id) {
-    const p = contasPagar.find(item => item.id === id);
+    const p = contasPagar.find(item => String(item.id) === String(id));
     if (!p) return;
 
     document.getElementById('pagId').value = p.id;
@@ -538,24 +558,14 @@ function editarPagar(id) {
 
 function excluirPagar(id) {
     if (confirm('Deseja realmente excluir esta conta a pagar?')) {
-        contasPagar = contasPagar.filter(p => p.id !== id);
-        salvarDadosLocal();
-        renderizarTudo();
-    }
-}
-
-function darBaixaReceber(id) {
-    const item = contasReceber.find(r => r.id === id);
-    if (item) {
-        item.status = 'PAGO';
-        item.dataPagamento = new Date().toISOString().split('T')[0];
+        contasPagar = contasPagar.filter(p => String(p.id) !== String(id));
         salvarDadosLocal();
         renderizarTudo();
     }
 }
 
 function editarReceber(id) {
-    const r = contasReceber.find(item => item.id === id);
+    const r = contasReceber.find(item => String(item.id) === String(id));
     if (!r) return;
 
     document.getElementById('entId').value = r.id;
@@ -573,7 +583,7 @@ function editarReceber(id) {
 
 function excluirReceber(id) {
     if (confirm('Deseja realmente excluir esta conta a receber?')) {
-        contasReceber = contasReceber.filter(r => r.id !== id);
+        contasReceber = contasReceber.filter(r => String(r.id) !== String(id));
         salvarDadosLocal();
         renderizarTudo();
     }
@@ -641,7 +651,7 @@ function salvarProduto(event) {
     if (event) event.preventDefault();
     const id = document.getElementById('prodId').value;
     const prod = {
-        id: id || Date.now().toString(),
+        id: id ? String(id) : Date.now().toString(),
         sku: document.getElementById('prodSku').value.trim(),
         categoria: document.getElementById('prodCategoria').value.trim(),
         nome: document.getElementById('prodNome').value.trim(),
@@ -652,7 +662,7 @@ function salvarProduto(event) {
     };
 
     if (id) {
-        const idx = estoque.findIndex(p => p.id === id);
+        const idx = estoque.findIndex(p => String(p.id) === String(id));
         if (idx !== -1) estoque[idx] = prod;
     } else {
         estoque.push(prod);
@@ -664,7 +674,7 @@ function salvarProduto(event) {
 }
 
 function editarProduto(id) {
-    const p = estoque.find(item => item.id === id);
+    const p = estoque.find(item => String(item.id) === String(id));
     if (!p) return;
 
     document.getElementById('prodId').value = p.id;
@@ -681,14 +691,14 @@ function editarProduto(id) {
 
 function excluirProduto(id) {
     if (confirm('Deseja realmente remover este item do estoque?')) {
-        estoque = estoque.filter(p => p.id !== id);
+        estoque = estoque.filter(p => String(p.id) !== String(id));
         salvarDadosLocal();
         renderizarTudo();
     }
 }
 
 function abrirModalMovimentacao(id) {
-    const p = estoque.find(item => item.id === id);
+    const p = estoque.find(item => String(item.id) === String(id));
     if (!p) return;
 
     document.getElementById('movProdId').value = p.id;
@@ -702,10 +712,10 @@ function salvarMovimentacaoEstoque(event) {
     const tipo = document.getElementById('movTipo').value;
     const qtd = parseInt(document.getElementById('movQtd').value) || 0;
 
-    const p = estoque.find(item => item.id === id);
+    const p = estoque.find(item => String(item.id) === String(id));
     if (p) {
         if (tipo === 'SAIDA' && p.qtd < qtd) {
-            alert('Quantidade insuficiente em estoque para esta saída!');
+            alert('Quantidade insuficiente em estoque!');
             return;
         }
         p.qtd = tipo === 'ENTRADA' ? p.qtd + qtd : p.qtd - qtd;
