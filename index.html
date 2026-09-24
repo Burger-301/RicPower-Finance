@@ -290,7 +290,7 @@
                 <div class="panel-header">
                     <h3 class="panel-title">Gestão de Contas a Pagar</h3>
                     <div class="filter-bar">
-                        <input type="text" id="buscaPagar" class="filter-input" placeholder="🔍 Buscar fornecedor/descrição..." oninput="carregarDados()">
+                        <input type="text" id="buscaPagar" class="filter-input" placeholder="🔍 Buscar recebedor / empresa / descrição..." oninput="carregarDados()">
                         <select id="filtroStatusPagar" class="filter-input" onchange="carregarDados()">
                             <option value="TODOS">Todos os Status</option>
                             <option value="PENDENTE">Pendente</option>
@@ -309,7 +309,7 @@
                 </div>
                 <div class="table-responsive">
                     <table>
-                        <thead><tr><th>Vencimento</th><th>Fornecedor</th><th>Descrição</th><th>Valor</th><th>Status</th><th>Centro Custo</th><th>Ações</th></tr></thead>
+                        <thead><tr><th>Vencimento</th><th>Recebedor / Empresa</th><th>Descrição</th><th>Valor</th><th>Status</th><th>Centro Custo</th><th>Ações</th></tr></thead>
                         <tbody id="tbPagar"></tbody>
                     </table>
                 </div>
@@ -489,7 +489,7 @@
             <h2 id="modalPagarTitle">Nova Conta a Pagar</h2>
             <form onsubmit="salvarPagar(event)" class="form-grid">
                 <input type="hidden" id="pagarId">
-                <div class="form-group full"><label>Fornecedor</label><input type="text" id="pagarFornecedor" class="form-control" required></div>
+                <div class="form-group full"><label>Recebedor / Empresa</label><input type="text" id="pagarFornecedor" class="form-control" required></div>
                 <div class="form-group full"><label>Descrição</label><input type="text" id="pagarDesc" class="form-control" required></div>
                 <div class="form-group"><label>Valor (R$)</label><input type="number" step="0.01" id="pagarValor" class="form-control" required></div>
                 <div class="form-group"><label>Vencimento</label><input type="date" id="pagarVenc" class="form-control" required></div>
@@ -1188,7 +1188,7 @@
         function exportarCSV(tipo) {
             let csvContent = "data:text/csv;charset=utf-8,";
             if (tipo === 'pagar') {
-                csvContent += "Vencimento;Fornecedor;Descricao;Valor;Status;CentroCusto\n";
+                csvContent += "Vencimento;Recebedor / Empresa;Descricao;Valor;Status;CentroCusto\n";
                 dbPagar.forEach(p => { csvContent += `${p.venc};${p.fornecedor};${p.desc};${p.valor};${p.status};${p.cc}\n`; });
             } else if (tipo === 'receber') {
                 csvContent += "Vencimento;Cliente;Descricao;Valor;Status;CentroCusto\n";
