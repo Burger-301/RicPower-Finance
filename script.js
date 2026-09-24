@@ -1,4 +1,4 @@
-// 1. CONFIGURAÇÃO DO FIREBASE COM REALTIME DATABASE
+// 1. CONFIGURAÇÃO OFICIAL DO FIREBASE COM REALTIME DATABASE
 const firebaseConfig = {
   apiKey: "AIzaSyAMIo-e1IQVvoVNvHfjyCvQ3mpmA8XpEZU",
   authDomain: "ricpower-finance-4312b.firebaseapp.com",
@@ -25,7 +25,7 @@ const getMesAtualStr = () => {
 
 const mesAtual = getMesAtualStr();
 
-// DADOS LOCAIS DE ARMAZENAMENTO
+// DADOS LOCAIS DE ARMAZENAMENTO (TUDO CARREGADO POR PADRÃO)
 let contasPagar = JSON.parse(localStorage.getItem('ricpower_pagar')) || [
     { id: '1', vencimento: `${mesAtual}-15`, fornecedor: 'RGE Energia', descricao: 'Conta de Energia Elétrica', valor: 1000.00, categoria: 'Custos Fixos', status: 'PAGO', dataPagamento: `${mesAtual}-15`, tipoPagamento: 'PIX' },
     { id: '2', vencimento: `${mesAtual}-21`, fornecedor: 'AliExpress', descricao: 'Lote de Placas e Chips', valor: 850.00, categoria: 'Peças Novas', status: 'PENDENTE', dataPagamento: '', tipoPagamento: 'PIX' },
@@ -42,13 +42,22 @@ let estoque = JSON.parse(localStorage.getItem('ricpower_estoque')) || [
     { id: '2', sku: 'PEC-002', nome: 'Pasta Térmica Alta Condutividade', categoria: 'Insumos', qtd: 3, qtdMin: 5, precoCusto: 35.00, precoVenda: 90.00 }
 ];
 
-let filtroDataAtivo = 'Este Mês';
+// FILTRO INICIA EM 'Todos os Registros' PARA EXIBIR TUDO
+let filtroDataAtivo = 'Todos os Registros';
 let dataInicioCustom = '';
 let dataFimCustom = '';
 let fluxoCaixaChartInstance = null;
 let centroCustoChartInstance = null;
 
-// ARMAZENAMENTO LOCAL E NUVEM (FIREBASE)
+// CÁLCULO DINÂMICO DE STATUS (SE A DATA PASSOU E NÃO FOI PAGO = ATRASADO)
+function getStatusEfetivo(item) {
+    if (item.status === 'PAGO') return 'PAGO';
+    const hojeIso = new Date().toISOString().split('T')[0];
+    if (item.vencimento && item.vencimento < hojeIso) return 'ATRASADO';
+    return 'PENDENTE';
+}
+
+// ARMAZENAMENTO E SINCRONIZAÇÃO NUVEM
 function salvarDadosLocal(skipNuvem = false) {
     localStorage.setItem('ricpower_pagar', JSON.stringify(contasPagar));
     localStorage.setItem('ricpower_receber', JSON.stringify(contasReceber));
@@ -63,7 +72,6 @@ function salvarDadosLocal(skipNuvem = false) {
     }
 }
 
-// ESCUTA EM TEMPO REAL ENTRE DISPOSITIVOS
 function escutarSincronizacaoNuvem() {
     if (db) {
         db.ref('ricpower_dados').on('value', (snapshot) => {
@@ -93,7 +101,7 @@ function formatarDataBR(dataIso) {
     return `${partes[2]}/${partes[1]}/${partes[0]}`;
 }
 
-/* LOGIN E SESSÃO */
+/* SESSÃO DE USUÁRIO */
 function realizarLogin(event) {
     if (event) event.preventDefault();
     const email = document.getElementById('loginEmail').value.trim();
@@ -206,8 +214,8 @@ function aplicarFiltroPersonalizado() {
 function limparFiltro() {
     document.getElementById('dataInicioFiltro').value = '';
     document.getElementById('dataFimFiltro').value = '';
-    const btnPadrao = document.getElementById('opt-mes-atual');
-    selectPredefinedPeriod(btnPadrao, 'Este Mês');
+    const btnPadrao = document.getElementById('opt-todos');
+    selectPredefinedPeriod(btnPadrao, 'Todos os Registros');
 }
 
 function filtrarPorPeriodo(lista, campoData = 'vencimento') {
@@ -280,15 +288,18 @@ function renderizarDashboard() {
         if (uniao.length === 0) {
             proximosTable.innerHTML = `<tr><td colspan="5" style="text-align:center;">Nenhum lançamento no período.</td></tr>`;
         } else {
-            proximosTable.innerHTML = uniao.map(item => `
-                <tr>
-                    <td>${formatarDataBR(item.vencimento)}</td>
-                    <td><span class="badge ${item.tipoConta === 'ENTRADA' ? 'badge-success' : 'badge-danger'}">${item.tipoConta}</span></td>
-                    <td><strong>${item.nome}</strong></td>
-                    <td class="${item.tipoConta === 'ENTRADA' ? 'text-success' : 'text-danger'} font-bold">${formatarMoeda(item.valor)}</td>
-                    <td><span class="status ${item.status.toLowerCase()}">${item.status}</span></td>
-                </tr>
-            `).join('');
+            proximosTable.innerHTML = uniao.map(item => {
+                const stEfetivo = getStatusEfetivo(item);
+                return `
+                    <tr>
+                        <td>${formatarDataBR(item.vencimento)}</td>
+                        <td><span class="badge ${item.tipoConta === 'ENTRADA' ? 'badge-success' : 'badge-danger'}">${item.tipoConta}</span></td>
+                        <td><strong>${item.nome}</strong></td>
+                        <td class="${item.tipoConta === 'ENTRADA' ? 'text-success' : 'text-danger'} font-bold">${formatarMoeda(item.valor)}</td>
+                        <td><span class="status ${stEfetivo.toLowerCase()}">${stEfetivo}</span></td>
+                    </tr>
+                `;
+            }).join('');
         }
     }
 
@@ -369,7 +380,7 @@ function renderizarGraficosSeguro(receberList, pagarList) {
     }
 }
 
-/* CONTAS A PAGAR E RECEBER */
+/* TABELAS COM EXIBIÇÃO TOTAL E FILTROS DINÂMICOS */
 function renderizarContasPagar() {
     const tbody = document.getElementById('tableContasPagar');
     if (!tbody) return;
@@ -383,30 +394,33 @@ function renderizarContasPagar() {
         filtradas = filtradas.filter(p => p.fornecedor.toLowerCase().includes(termo) || p.descricao.toLowerCase().includes(termo));
     }
     if (statusFiltro !== 'todos') {
-        filtradas = filtradas.filter(p => p.status === statusFiltro);
+        filtradas = filtradas.filter(p => getStatusEfetivo(p) === statusFiltro);
     }
 
     if (filtradas.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;">Nenhuma conta a pagar encontrada.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;">Nenhuma conta a pagar encontrada para os filtros selecionados.</td></tr>`;
         return;
     }
 
-    tbody.innerHTML = filtradas.map(p => `
-        <tr>
-            <td>${formatarDataBR(p.vencimento)}</td>
-            <td><strong>${p.fornecedor}</strong></td>
-            <td>${p.descricao}</td>
-            <td class="text-danger font-bold">${formatarMoeda(p.valor)}</td>
-            <td><span class="category-badge">${p.categoria}</span></td>
-            <td><span class="status ${p.status.toLowerCase()}">${p.status}</span></td>
-            <td>${formatarDataBR(p.dataPagamento)}</td>
-            <td>
-                ${p.status !== 'PAGO' ? `<button class="btn-action btn-success" title="Dar Baixa" onclick="darBaixaPagar('${p.id}')"><i class="fas fa-check"></i> Pago</button>` : ''}
-                <button class="btn-action btn-secondary" title="Editar" onclick="editarPagar('${p.id}')"><i class="fas fa-edit"></i></button>
-                <button class="btn-action btn-danger" title="Excluir" onclick="excluirPagar('${p.id}')"><i class="fas fa-trash"></i></button>
-            </td>
-        </tr>
-    `).join('');
+    tbody.innerHTML = filtradas.map(p => {
+        const stEfetivo = getStatusEfetivo(p);
+        return `
+            <tr>
+                <td>${formatarDataBR(p.vencimento)}</td>
+                <td><strong>${p.fornecedor}</strong></td>
+                <td>${p.descricao}</td>
+                <td class="text-danger font-bold">${formatarMoeda(p.valor)}</td>
+                <td><span class="category-badge">${p.categoria}</span></td>
+                <td><span class="status ${stEfetivo.toLowerCase()}">${stEfetivo}</span></td>
+                <td>${formatarDataBR(p.dataPagamento)}</td>
+                <td>
+                    ${stEfetivo !== 'PAGO' ? `<button class="btn-action btn-success" title="Dar Baixa" onclick="darBaixaPagar('${p.id}')"><i class="fas fa-check"></i> Pago</button>` : ''}
+                    <button class="btn-action btn-secondary" title="Editar" onclick="editarPagar('${p.id}')"><i class="fas fa-edit"></i></button>
+                    <button class="btn-action btn-danger" title="Excluir" onclick="excluirPagar('${p.id}')"><i class="fas fa-trash"></i></button>
+                </td>
+            </tr>
+        `;
+    }).join('');
 }
 
 function renderizarContasReceber() {
@@ -422,40 +436,42 @@ function renderizarContasReceber() {
         filtradas = filtradas.filter(r => r.cliente.toLowerCase().includes(termo) || r.descricao.toLowerCase().includes(termo));
     }
     if (statusFiltro !== 'todos') {
-        filtradas = filtradas.filter(r => r.status === statusFiltro);
+        filtradas = filtradas.filter(r => getStatusEfetivo(r) === statusFiltro);
     }
 
     if (filtradas.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;">Nenhuma conta a receber encontrada.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;">Nenhuma conta a receber encontrada para os filtros selecionados.</td></tr>`;
         return;
     }
 
-    tbody.innerHTML = filtradas.map(r => `
-        <tr>
-            <td>${formatarDataBR(r.vencimento)}</td>
-            <td><strong>${r.cliente}</strong></td>
-            <td>${r.descricao}</td>
-            <td class="text-success font-bold">${formatarMoeda(r.valor)}</td>
-            <td><span class="category-badge">${r.categoria}</span></td>
-            <td><span class="status ${r.status.toLowerCase()}">${r.status}</span></td>
-            <td>${formatarDataBR(r.dataPagamento)}</td>
-            <td>
-                ${r.status !== 'PAGO' ? `<button class="btn-action btn-success" title="Dar Baixa" onclick="darBaixaReceber('${r.id}')"><i class="fas fa-check"></i> Pago</button>` : ''}
-                <button class="btn-action btn-secondary" title="Editar" onclick="editarReceber('${r.id}')"><i class="fas fa-edit"></i></button>
-                <button class="btn-action btn-danger" title="Excluir" onclick="excluirReceber('${r.id}')"><i class="fas fa-trash"></i></button>
-            </td>
-        </tr>
-    `).join('');
+    tbody.innerHTML = filtradas.map(r => {
+        const stEfetivo = getStatusEfetivo(r);
+        return `
+            <tr>
+                <td>${formatarDataBR(r.vencimento)}</td>
+                <td><strong>${r.cliente}</strong></td>
+                <td>${r.descricao}</td>
+                <td class="text-success font-bold">${formatarMoeda(r.valor)}</td>
+                <td><span class="category-badge">${r.categoria}</span></td>
+                <td><span class="status ${stEfetivo.toLowerCase()}">${stEfetivo}</span></td>
+                <td>${formatarDataBR(r.dataPagamento)}</td>
+                <td>
+                    ${stEfetivo !== 'PAGO' ? `<button class="btn-action btn-success" title="Dar Baixa" onclick="darBaixaReceber('${r.id}')"><i class="fas fa-check"></i> Pago</button>` : ''}
+                    <button class="btn-action btn-secondary" title="Editar" onclick="editarReceber('${r.id}')"><i class="fas fa-edit"></i></button>
+                    <button class="btn-action btn-danger" title="Excluir" onclick="excluirReceber('${r.id}')"><i class="fas fa-trash"></i></button>
+                </td>
+            </tr>
+        `;
+    }).join('');
 }
 
-/* DAR BAIXA (MARCAR COMO PAGO) - CORRIGIDO */
+/* OPERAÇÕES DE BAIXA, EDIÇÃO E EXCLUSÃO */
 function darBaixaPagar(id) {
     const item = contasPagar.find(p => String(p.id) === String(id));
     if (item) {
         item.status = 'PAGO';
         item.dataPagamento = new Date().toISOString().split('T')[0];
 
-        // Reseta o filtro para mostrar a conta atualizada
         const filterStatusP = document.getElementById('filterStatusPagar');
         if (filterStatusP) filterStatusP.value = 'todos';
 
@@ -470,7 +486,6 @@ function darBaixaReceber(id) {
         item.status = 'PAGO';
         item.dataPagamento = new Date().toISOString().split('T')[0];
 
-        // Reseta o filtro para mostrar a conta atualizada
         const filterStatusR = document.getElementById('filterStatusReceber');
         if (filterStatusR) filterStatusR.value = 'todos';
 
@@ -589,7 +604,7 @@ function excluirReceber(id) {
     }
 }
 
-/* CONTROLE DE ESTOQUE */
+/* CONTROLE DE ESTOQUE (EXIBE TUDO POR PADRÃO) */
 function renderizarEstoque() {
     const tbody = document.getElementById('tableEstoque');
     if (!tbody) return;
