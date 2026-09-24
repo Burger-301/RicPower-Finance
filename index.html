@@ -518,7 +518,7 @@
                 <div class="form-group"><label>Valor (R$)</label><input type="number" step="0.01" id="receberValor" class="form-control" required></div>
                 <div class="form-group"><label>Vencimento</label><input type="date" id="receberVenc" class="form-control" required></div>
                 <div class="form-group"><label>Status</label><select id="receberStatus" class="form-control"><option value="PENDENTE">PENDENTE</option><option value="PAGO">PAGO</option></select></div>
-                <div class="form-group"><label>Centro de Custo</label><select id="receberCC" class="form-control"><option>SERVIÇOS</option><option>VENDAS</option></select></div>
+                <div class="form-group"><label>Centro de Custo</label><select id="receberCC" class="form-control"><option value="SERVIÇOS">SERVIÇOS</option><option value="VENDAS">VENDAS</option></select></div>
                 <button type="submit" class="btn btn-success full" style="grid-column: 1/-1; justify-content: center; margin-top: 10px;">Salvar Conta a Receber</button>
             </form>
         </div>
@@ -1073,15 +1073,24 @@
             alert(`${novosLancamentos} despesa(s) fixa(s) gerada(s) para o mês ${mesAtual}/${anoAtual}!`);
         }
 
-        // CONTROLADORES DE MODAL
+        // CONTROLADORES DE MODAL (COM LIMPEZA COMPLETA DOS CAMPOS AO ABRIR NOVO)
         function abrirModalPagar() { 
             document.getElementById('pagarId').value = ''; 
+            document.getElementById('pagarFornecedor').value = '';
+            document.getElementById('pagarDesc').value = '';
+            document.getElementById('pagarValor').value = '';
+            document.getElementById('pagarVenc').value = '';
+            document.getElementById('pagarStatus').value = 'PENDENTE';
+            document.getElementById('pagarCC').value = 'ADMINISTRATIVO';
             document.getElementById('pagarFixa').value = 'NAO';
+            document.getElementById('modalPagarTitle').innerText = 'Nova Conta a Pagar';
             abrirModal('modalPagar'); 
         }
+
         function editarPagar(id) {
             let item = dbPagar.find(x => String(x.id) === String(id));
             if (!item) return;
+            document.getElementById('modalPagarTitle').innerText = 'Editar Conta a Pagar';
             document.getElementById('pagarId').value = item.id;
             document.getElementById('pagarFornecedor').value = item.fornecedor;
             document.getElementById('pagarDesc').value = item.desc;
@@ -1093,10 +1102,22 @@
             abrirModal('modalPagar');
         }
 
-        function abrirModalReceber() { document.getElementById('receberId').value = ''; abrirModal('modalReceber'); }
+        function abrirModalReceber() { 
+            document.getElementById('receberId').value = ''; 
+            document.getElementById('receberCliente').value = '';
+            document.getElementById('receberDesc').value = '';
+            document.getElementById('receberValor').value = '';
+            document.getElementById('receberVenc').value = '';
+            document.getElementById('receberStatus').value = 'PENDENTE';
+            document.getElementById('receberCC').value = 'SERVIÇOS';
+            document.getElementById('modalReceberTitle').innerText = 'Nova Conta a Receber';
+            abrirModal('modalReceber'); 
+        }
+
         function editarReceber(id) {
             let item = dbReceber.find(x => String(x.id) === String(id));
             if (!item) return;
+            document.getElementById('modalReceberTitle').innerText = 'Editar Conta a Receber';
             document.getElementById('receberId').value = item.id;
             document.getElementById('receberCliente').value = item.cliente;
             document.getElementById('receberDesc').value = item.desc;
@@ -1107,10 +1128,22 @@
             abrirModal('modalReceber');
         }
 
-        function abrirModalEstoque() { document.getElementById('estId').value = ''; abrirModal('modalEstoque'); }
+        function abrirModalEstoque() { 
+            document.getElementById('estId').value = ''; 
+            document.getElementById('estSKU').value = '';
+            document.getElementById('estNome').value = '';
+            document.getElementById('estQtd').value = '';
+            document.getElementById('estMin').value = '';
+            document.getElementById('estCusto').value = '';
+            document.getElementById('estVenda').value = '';
+            document.getElementById('modalEstoqueTitle').innerText = 'Cadastrar Peça no Estoque';
+            abrirModal('modalEstoque'); 
+        }
+
         function editarEstoque(id) {
             let item = dbEstoque.find(x => String(x.id) === String(id));
             if (!item) return;
+            document.getElementById('modalEstoqueTitle').innerText = 'Editar Peça no Estoque';
             document.getElementById('estId').value = item.id;
             document.getElementById('estSKU').value = item.sku;
             document.getElementById('estNome').value = item.nome;
@@ -1126,6 +1159,7 @@
             if (!item) return;
             document.getElementById('movEstId').value = item.id;
             document.getElementById('movEstNome').value = item.nome;
+            document.getElementById('movQtd').value = '1';
             abrirModal('modalMovimentar');
         }
 
