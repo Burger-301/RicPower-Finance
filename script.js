@@ -15,7 +15,7 @@ if (typeof firebase !== 'undefined' && !firebase.apps.length) {
 }
 const db = (typeof firebase !== 'undefined') ? firebase.database() : null;
 
-// GARANTE QUE QUALQUER DADO (ARRAYS OU OBJETOS FIREBASE) SEJA CONVERTIDO EM ARRAY VÁLIDO
+// CONVERTE OBJETOS FIREBASE OU DADOS LOCAIS EM ARRAYS VÁLIDOS
 function garantirArray(val) {
     if (!val) return [];
     if (Array.isArray(val)) return val.filter(item => item !== null && item !== undefined);
@@ -23,7 +23,32 @@ function garantirArray(val) {
     return [];
 }
 
-// HELPERS DE DATA E FORMATAÇÃO
+// PARSER UNIVERSAL DE DATA (EVITA 'INVALID DATE' EM QUALQUER FORMATO)
+function parseDateIso(dateStr) {
+    if (!dateStr) return null;
+    let s = String(dateStr).trim();
+    if (s.includes(' ')) s = s.split(' ')[0];
+    if (s.includes('T')) s = s.split('T')[0];
+    
+    // Formato DD/MM/YYYY
+    if (s.includes('/')) {
+        let parts = s.split('/');
+        if (parts.length === 3) {
+            return new Date(parseInt(parts[2], 10), parseInt(parts[1], 10) - 1, parseInt(parts[0], 10));
+        }
+    }
+    // Formato YYYY-MM-DD
+    if (s.includes('-')) {
+        let parts = s.split('-');
+        if (parts.length === 3) {
+            return new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+        }
+    }
+    let d = new Date(s);
+    return isNaN(d.getTime()) ? null : d;
+}
+
+// HELPERS DE FORMATAÇÃO
 const getMesAtualStr = () => {
     const d = new Date();
     const y = d.getFullYear();
@@ -33,7 +58,7 @@ const getMesAtualStr = () => {
 
 const mesAtual = getMesAtualStr();
 
-// DADOS LOCAIS DE ARMAZENAMENTO E BACKUP (TUDO CARREGADO POR PADRÃO)
+// DADOS LOCAIS BASE
 let contasPagar = garantirArray(JSON.parse(localStorage.getItem('ricpower_pagar'))) || [
     { id: '1', vencimento: `${mesAtual}-15`, fornecedor: 'RGE Energia', descricao: 'Conta de Energia Elétrica', valor: 1000.00, categoria: 'Custos Fixos', status: 'PAGO', dataPagamento: `${mesAtual}-15`, tipoPagamento: 'PIX' },
     { id: '2', vencimento: `${mesAtual}-21`, fornecedor: 'AliExpress', descricao: 'Lote de Placas e Chips', valor: 850.00, categoria: 'Peças Novas', status: 'PENDENTE', dataPagamento: '', tipoPagamento: 'PIX' },
@@ -50,7 +75,7 @@ let estoque = garantirArray(JSON.parse(localStorage.getItem('ricpower_estoque'))
     { id: '2', sku: 'PEC-002', nome: 'Pasta Térmica Alta Condutividade', categoria: 'Insumos', qtd: 3, qtdMin: 5, precoCusto: 35.00, precoVenda: 90.00 }
 ];
 
-// FILTRO INICIA EM 'Todos os Registros' PARA EXIBIR TUDO
+// INICIA EM 'Todos os Registros' PARA EXIBIR TUDO
 let filtroDataAtivo = 'Todos os Registros';
 let dataInicioCustom = '';
 let dataFimCustom = '';
@@ -59,13 +84,15 @@ let centroCustoChartInstance = null;
 
 // CÁLCULO DINÂMICO DE STATUS
 function getStatusEfetivo(item) {
-    if (item.status === 'PAGO') return 'PAGO';
-    const hojeIso = new Date().toISOString().split('T')[0];
-    if (item.vencimento && item.vencimento < hojeIso) return 'ATRASADO';
+    if (String(item.status).toUpperCase() === 'PAGO') return 'PAGO';
+    const hoje = new Date();
+    hoje.setHours(0,0,0,0);
+    const dtVenc = parseDateIso(item.vencimento);
+    if (dtVenc && dtVenc < hoje) return 'ATRASADO';
     return 'PENDENTE';
 }
 
-// GUARDA LOCALMENTE E SINCRONIZA COM A NUVEM
+// ARMAZENAMENTO E NUVEM
 function salvarDadosLocal(skipNuvem = false) {
     contasPagar = garantirArray(contasPagar);
     contasReceber = garantirArray(contasReceber);
@@ -84,7 +111,6 @@ function salvarDadosLocal(skipNuvem = false) {
     }
 }
 
-// ESCUTA EM TEMPO REAL (PC <-> TELEMÓVEL)
 function escutarSincronizacaoNuvem() {
     if (db) {
         db.ref('ricpower_dados').on('value', (snapshot) => {
@@ -109,9 +135,12 @@ function formatarMoeda(valor) {
 
 function formatarDataBR(dataIso) {
     if (!dataIso) return '-';
-    const partes = dataIso.split('-');
-    if (partes.length !== 3) return dataIso;
-    return `${partes[2]}/${partes[1]}/${partes[0]}`;
+    const dt = parseDateIso(dataIso);
+    if (!dt) return dataIso;
+    const day = String(dt.getDate()).padStart(2, '0');
+    const month = String(dt.getMonth() + 1).padStart(2, '0');
+    const year = dt.getFullYear();
+    return `${day}/${month}/${year}`;
 }
 
 /* AUTENTICAÇÃO E SESSÃO */
@@ -185,7 +214,7 @@ function showTab(tabId, navElement) {
     renderizarTudo();
 }
 
-/* FILTROS DE PERÍODO */
+/* FILTROS DE PERÍODO (MANTÉM TUDO VISÍVEL SE 'Todos os Registros') */
 function toggleDateFilter() {
     document.getElementById('dateFilterDropdown').classList.toggle('show');
 }
@@ -241,7 +270,9 @@ function filtrarPorPeriodo(lista, campoData = 'vencimento') {
 
     return listaArray.filter(item => {
         if (!item[campoData]) return true;
-        const dataItem = new Date(item[campoData] + 'T00:00:00');
+        const dataItem = parseDateIso(item[campoData]);
+        if (!dataItem) return true; // Não exclui se a data não puder ser lida
+
         const anoItem = dataItem.getFullYear();
         const mesItem = dataItem.getMonth();
 
@@ -258,9 +289,11 @@ function filtrarPorPeriodo(lista, campoData = 'vencimento') {
         } else if (filtroDataAtivo === 'Este Ano') {
             return anoItem === anoAtual;
         } else if (filtroDataAtivo === 'Customizado' && dataInicioCustom && dataFimCustom) {
-            const dtI = new Date(dataInicioCustom + 'T00:00:00');
-            const dtF = new Date(dataFimCustom + 'T23:59:59');
-            return dataItem >= dtI && dataItem <= dtF;
+            const dtI = parseDateIso(dataInicioCustom);
+            const dtF = parseDateIso(dataFimCustom);
+            if (dtI) dtI.setHours(0,0,0,0);
+            if (dtF) dtF.setHours(23,59,59,999);
+            if (dtI && dtF) return dataItem >= dtI && dataItem <= dtF;
         }
         return true;
     });
@@ -297,7 +330,7 @@ function renderizarDashboard() {
         const uniao = [
             ...pagarFiltrado.map(p => ({ ...p, tipoConta: 'SAIDA', nome: p.fornecedor })),
             ...receberFiltrado.map(r => ({ ...r, tipoConta: 'ENTRADA', nome: r.cliente }))
-        ].sort((a, b) => a.vencimento.localeCompare(b.vencimento)).slice(0, 5);
+        ].sort((a, b) => String(a.vencimento).localeCompare(String(b.vencimento))).slice(0, 5);
 
         if (uniao.length === 0) {
             proximosTable.innerHTML = `<tr><td colspan="5" style="text-align:center;">Nenhum lançamento no período.</td></tr>`;
@@ -394,21 +427,27 @@ function renderizarGraficosSeguro(receberList, pagarList) {
     }
 }
 
-/* CONTAS A PAGAR E RECEBER (TABELAS) */
+/* CONTAS A PAGAR E RECEBER (EXIBE TUDO QUANDO 'todos') */
 function renderizarContasPagar() {
     const tbody = document.getElementById('tableContasPagar');
     if (!tbody) return;
 
-    const termo = (document.getElementById('searchPagar')?.value || '').toLowerCase();
-    const statusFiltro = document.getElementById('filterStatusPagar')?.value || 'todos';
+    const termo = (document.getElementById('searchPagar')?.value || '').trim().toLowerCase();
+    const statusFiltro = (document.getElementById('filterStatusPagar')?.value || 'todos').toLowerCase();
 
     let filtradas = filtrarPorPeriodo(contasPagar);
 
-    if (termo) {
-        filtradas = filtradas.filter(p => p.fornecedor.toLowerCase().includes(termo) || p.descricao.toLowerCase().includes(termo));
+    if (termo !== '') {
+        filtradas = filtradas.filter(p => 
+            (p.fornecedor && String(p.fornecedor).toLowerCase().includes(termo)) || 
+            (p.descricao && String(p.descricao).toLowerCase().includes(termo)) ||
+            (p.categoria && String(p.categoria).toLowerCase().includes(termo))
+        );
     }
+
+    // Se o filtro for diferente de 'todos', aplica o filtro de status
     if (statusFiltro !== 'todos') {
-        filtradas = filtradas.filter(p => getStatusEfetivo(p) === statusFiltro);
+        filtradas = filtradas.filter(p => getStatusEfetivo(p).toLowerCase() === statusFiltro);
     }
 
     if (filtradas.length === 0) {
@@ -441,16 +480,22 @@ function renderizarContasReceber() {
     const tbody = document.getElementById('tableContasReceber');
     if (!tbody) return;
 
-    const termo = (document.getElementById('searchReceber')?.value || '').toLowerCase();
-    const statusFiltro = document.getElementById('filterStatusReceber')?.value || 'todos';
+    const termo = (document.getElementById('searchReceber')?.value || '').trim().toLowerCase();
+    const statusFiltro = (document.getElementById('filterStatusReceber')?.value || 'todos').toLowerCase();
 
     let filtradas = filtrarPorPeriodo(contasReceber);
 
-    if (termo) {
-        filtradas = filtradas.filter(r => r.cliente.toLowerCase().includes(termo) || r.descricao.toLowerCase().includes(termo));
+    if (termo !== '') {
+        filtradas = filtradas.filter(r => 
+            (r.cliente && String(r.cliente).toLowerCase().includes(termo)) || 
+            (r.descricao && String(r.descricao).toLowerCase().includes(termo)) ||
+            (r.categoria && String(r.categoria).toLowerCase().includes(termo))
+        );
     }
+
+    // Se o filtro for diferente de 'todos', aplica o filtro de status
     if (statusFiltro !== 'todos') {
-        filtradas = filtradas.filter(r => getStatusEfetivo(r) === statusFiltro);
+        filtradas = filtradas.filter(r => getStatusEfetivo(r).toLowerCase() === statusFiltro);
     }
 
     if (filtradas.length === 0) {
@@ -479,7 +524,7 @@ function renderizarContasReceber() {
     }).join('');
 }
 
-/* DAR BAIXA INSTANTÂNEA AO CLICAR */
+/* DAR BAIXA INSTANTÂNEA */
 function darBaixaPagar(id) {
     contasPagar = garantirArray(contasPagar);
     const item = contasPagar.find(p => String(p.id) === String(id));
@@ -615,13 +660,16 @@ function renderizarEstoque() {
     const tbody = document.getElementById('tableEstoque');
     if (!tbody) return;
 
-    const termo = (document.getElementById('searchEstoque')?.value || '').toLowerCase();
-    const filtroAlerta = document.getElementById('filterAlertaEstoque')?.value || 'todos';
+    const termo = (document.getElementById('searchEstoque')?.value || '').trim().toLowerCase();
+    const filtroAlerta = (document.getElementById('filterAlertaEstoque')?.value || 'todos').toLowerCase();
 
     let filtrados = [...garantirArray(estoque)];
 
-    if (termo) {
-        filtrados = filtrados.filter(p => p.sku.toLowerCase().includes(termo) || p.nome.toLowerCase().includes(termo));
+    if (termo !== '') {
+        filtrados = filtrados.filter(p => 
+            (p.sku && String(p.sku).toLowerCase().includes(termo)) || 
+            (p.nome && String(p.nome).toLowerCase().includes(termo))
+        );
     }
 
     if (filtroAlerta === 'alerta') {
@@ -902,7 +950,7 @@ function abrirModalProduto() {
     abrirModal('modalProduto');
 }
 
-/* EXPÕE AS FUNÇÕES NO ESCOPO GLOBAL WINDOW PARA O ONCLICK */
+/* ESCOPO GLOBAL */
 window.darBaixaPagar = darBaixaPagar;
 window.darBaixaReceber = darBaixaReceber;
 window.editarPagar = editarPagar;
