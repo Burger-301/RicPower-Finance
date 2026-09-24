@@ -9,11 +9,6 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 
-    <!-- Firebase SDKs -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-
     <style>
         :root {
             --primary-color: #111111;
@@ -77,7 +72,7 @@
         .btn-clear { background-color: #eee; color: #555; }
 
         /* CARDS KPI DE DESTAQUE */
-        .cards-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 18px; margin-bottom: 25px; }
+        .cards-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 18px; margin-bottom: 25px; }
         .card { background-color: var(--card-bg); padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.04); display: flex; justify-content: space-between; align-items: center; border-left: 5px solid #ccc; }
         .card.real-in { border-color: var(--success-color); }
         .card.pending-in { border-color: #8e44ad; }
@@ -100,19 +95,23 @@
         /* TABELAS */
         .table-responsive { overflow-x: auto; }
         table { width: 100%; border-collapse: collapse; text-align: left; }
-        th, td { padding: 12px 15px; border-bottom: 1px solid #eee; font-size: 14px; }
-        th { background-color: #fafafa; color: #7f8c8d; font-weight: 600; text-transform: uppercase; font-size: 12px; }
+        th, td { padding: 12px 15px; border-bottom: 1px solid #eee; font-size: 13px; }
+        th { background-color: #fafafa; color: #7f8c8d; font-weight: 600; text-transform: uppercase; font-size: 11px; }
         .status-badge { padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: bold; display: inline-block; text-transform: uppercase; }
         .status-badge.pago { background-color: #d4edda; color: #155724; }
         .status-badge.pendente { background-color: #fff3cd; color: #856404; }
         .status-badge.atrasado { background-color: #f8d7da; color: #721c24; }
 
         /* BOTÕES */
-        .btn { padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: bold; display: inline-flex; align-items: center; gap: 8px; transition: 0.2s; text-decoration: none; }
+        .btn { padding: 8px 14px; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: bold; display: inline-flex; align-items: center; gap: 6px; transition: 0.2s; text-decoration: none; }
         .btn-success { background-color: var(--success-color); color: white; }
         .btn-danger { background-color: var(--danger-color); color: white; }
         .btn-primary { background-color: var(--accent-color); color: var(--primary-color); }
         .btn-secondary { background-color: var(--primary-color); color: white; }
+        .btn-warning { background-color: var(--warning-color); color: white; }
+        .btn-sm { padding: 5px 10px; font-size: 11px; }
+
+        .action-btns { display: flex; gap: 5px; flex-wrap: wrap; }
 
         /* FORMULÁRIOS & MODAIS */
         .modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100vw; height: 100vh; background-color: rgba(0,0,0,0.7); align-items: center; justify-content: center; padding: 20px; }
@@ -270,11 +269,11 @@
             <div class="panel">
                 <div class="panel-header">
                     <h3 class="panel-title">Gestão de Contas a Pagar</h3>
-                    <button class="btn btn-danger" onclick="abrirModal('modalPagar')"><i class="fas fa-plus"></i> Nova Conta a Pagar</button>
+                    <button class="btn btn-danger" onclick="abrirModalPagar()"><i class="fas fa-plus"></i> Nova Conta a Pagar</button>
                 </div>
                 <div class="table-responsive">
                     <table>
-                        <thead><tr><th>Vencimento</th><th>Fornecedor</th><th>Descrição</th><th>Valor</th><th>Status</th><th>Pagamento</th><th>Centro Custo</th><th>Ações</th></tr></thead>
+                        <thead><tr><th>Vencimento</th><th>Fornecedor</th><th>Descrição</th><th>Valor</th><th>Status</th><th>Centro Custo</th><th>Ações</th></tr></thead>
                         <tbody id="tbPagar"></tbody>
                     </table>
                 </div>
@@ -286,11 +285,11 @@
             <div class="panel">
                 <div class="panel-header">
                     <h3 class="panel-title">Gestão de Contas a Receber</h3>
-                    <button class="btn btn-success" onclick="abrirModal('modalReceber')"><i class="fas fa-plus"></i> Nova Conta a Receber</button>
+                    <button class="btn btn-success" onclick="abrirModalReceber()"><i class="fas fa-plus"></i> Nova Conta a Receber</button>
                 </div>
                 <div class="table-responsive">
                     <table>
-                        <thead><tr><th>Vencimento</th><th>Cliente</th><th>Descrição</th><th>Valor</th><th>Status</th><th>Recebimento</th><th>Centro Custo</th><th>Ações</th></tr></thead>
+                        <thead><tr><th>Vencimento</th><th>Cliente</th><th>Descrição</th><th>Valor</th><th>Status</th><th>Centro Custo</th><th>Ações</th></tr></thead>
                         <tbody id="tbReceber"></tbody>
                     </table>
                 </div>
@@ -302,7 +301,7 @@
             <div class="panel">
                 <div class="panel-header">
                     <h3 class="panel-title">Controle de Peças e Produtos</h3>
-                    <button class="btn btn-primary" onclick="abrirModal('modalEstoque')"><i class="fas fa-box-open"></i> Cadastrar Peça</button>
+                    <button class="btn btn-primary" onclick="abrirModalEstoque()"><i class="fas fa-box-open"></i> Cadastrar Peça</button>
                 </div>
                 <div class="table-responsive">
                     <table>
@@ -374,12 +373,13 @@
 
     </div>
 
-    <!-- MODAIS DE CADASTRO -->
+    <!-- MODAIS DE CADASTRO E EDIÇÃO -->
     <div id="modalPagar" class="modal">
         <div class="modal-content">
             <span class="close-modal" onclick="fecharModal('modalPagar')">&times;</span>
-            <h2>Nova Conta a Pagar</h2>
+            <h2 id="modalPagarTitle">Nova Conta a Pagar</h2>
             <form onsubmit="salvarPagar(event)" class="form-grid">
+                <input type="hidden" id="pagarId">
                 <div class="form-group full"><label>Fornecedor</label><input type="text" id="pagarFornecedor" class="form-control" required></div>
                 <div class="form-group full"><label>Descrição</label><input type="text" id="pagarDesc" class="form-control" required></div>
                 <div class="form-group"><label>Valor (R$)</label><input type="number" step="0.01" id="pagarValor" class="form-control" required></div>
@@ -394,8 +394,9 @@
     <div id="modalReceber" class="modal">
         <div class="modal-content">
             <span class="close-modal" onclick="fecharModal('modalReceber')">&times;</span>
-            <h2>Nova Conta a Receber</h2>
+            <h2 id="modalReceberTitle">Nova Conta a Receber</h2>
             <form onsubmit="salvarReceber(event)" class="form-grid">
+                <input type="hidden" id="receberId">
                 <div class="form-group full"><label>Cliente</label><input type="text" id="receberCliente" class="form-control" required></div>
                 <div class="form-group full"><label>Descrição</label><input type="text" id="receberDesc" class="form-control" required></div>
                 <div class="form-group"><label>Valor (R$)</label><input type="number" step="0.01" id="receberValor" class="form-control" required></div>
@@ -410,8 +411,9 @@
     <div id="modalEstoque" class="modal">
         <div class="modal-content">
             <span class="close-modal" onclick="fecharModal('modalEstoque')">&times;</span>
-            <h2>Cadastrar Peça no Estoque</h2>
+            <h2 id="modalEstoqueTitle">Cadastrar Peça no Estoque</h2>
             <form onsubmit="salvarEstoque(event)" class="form-grid">
+                <input type="hidden" id="estId">
                 <div class="form-group"><label>SKU / Código</label><input type="text" id="estSKU" class="form-control" required></div>
                 <div class="form-group"><label>Nome da Peça</label><input type="text" id="estNome" class="form-control" required></div>
                 <div class="form-group"><label>Qtd Atual</label><input type="number" id="estQtd" class="form-control" required></div>
@@ -423,7 +425,21 @@
         </div>
     </div>
 
-    <!-- SCRIPT DE INTELIGÊNCIA BANCÁRIA, BACKUP E INTERFACE -->
+    <div id="modalMovimentar" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="fecharModal('modalMovimentar')">&times;</span>
+            <h2>Movimentar Estoque</h2>
+            <form onsubmit="salvarMovimentacaoEstoque(event)" class="form-grid">
+                <input type="hidden" id="movEstId">
+                <div class="form-group full"><label>Peça</label><input type="text" id="movEstNome" class="form-control" readonly></div>
+                <div class="form-group"><label>Tipo</label><select id="movTipo" class="form-control"><option value="ENTRADA">Entrada (+)</option><option value="SAIDA">Saída (-)</option></select></div>
+                <div class="form-group"><label>Quantidade</label><input type="number" id="movQtd" class="form-control" min="1" value="1" required></div>
+                <button type="submit" class="btn btn-primary" style="grid-column: 1/-1; justify-content: center; margin-top: 10px;">Confirmar Movimentação</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- SCRIPT DE INTELIGÊNCIA BANCÁRIA, AÇÕES E BACKUP -->
     <script>
         // ESTADO GLOBAL DA APLICAÇÃO
         let dbPagar = JSON.parse(localStorage.getItem('ric_pagar')) || [
@@ -481,12 +497,10 @@
 
         // CARREGAR E RENDERIZAR
         function carregarDados() {
-            // Guardar no LocalStorage
             localStorage.setItem('ric_pagar', JSON.stringify(dbPagar));
             localStorage.setItem('ric_receber', JSON.stringify(dbReceber));
             localStorage.setItem('ric_estoque', JSON.stringify(dbEstoque));
 
-            // Cálculo dos Indicadores
             let realIn = dbReceber.filter(x => x.status === 'PAGO').reduce((a,b) => a + Number(b.valor), 0);
             let pendingIn = dbReceber.filter(x => x.status !== 'PAGO').reduce((a,b) => a + Number(b.valor), 0);
             
@@ -497,7 +511,6 @@
             let balProj = (realIn + pendingIn) - (realOut + pendingOut);
             let stockTot = dbEstoque.reduce((a,b) => a + (Number(b.qtd) * Number(b.custo)), 0);
 
-            // Renderizar KPIs
             document.getElementById('kpiRealIn').innerText = fmt(realIn);
             document.getElementById('kpiPendingIn').innerText = fmt(pendingIn);
             document.getElementById('kpiRealOut').innerText = fmt(realOut);
@@ -506,7 +519,6 @@
             document.getElementById('kpiBalanceProjected').innerText = fmt(balProj);
             document.getElementById('kpiStockTotal').innerText = fmt(stockTot);
 
-            // Renderizar DRE
             document.getElementById('dreReceitaReal').innerText = fmt(realIn);
             document.getElementById('dreDespesaReal').innerText = fmt(realOut);
             document.getElementById('dreResultadoReal').innerText = fmt(balReal);
@@ -514,13 +526,12 @@
             document.getElementById('dreDespesaPend').innerText = fmt(pendingOut);
             document.getElementById('dreResultadoProjetado').innerText = fmt(balProj);
 
-            // Renderizar Tabelas
             renderTabelas();
             renderGraficos(realIn, realOut);
         }
 
         function renderTabelas() {
-            // Próximos Vencimentos
+            // Dashboard Vencimentos
             let tbVenc = document.getElementById('tbProximosVencimentos');
             tbVenc.innerHTML = '';
             [...dbPagar, ...dbReceber].slice(0, 5).forEach(item => {
@@ -532,7 +543,7 @@
                         <td>${isPagar ? item.fornecedor : item.cliente}</td>
                         <td><strong>${fmt(Number(item.valor))}</strong></td>
                         <td><span class="status-badge ${item.status.toLowerCase()}">${item.status}</span></td>
-                        <td><button class="btn btn-secondary" onclick="alternarStatus(${item.id}, ${isPagar})">Mudar Status</button></td>
+                        <td><button class="btn btn-secondary btn-sm" onclick="alternarStatus(${item.id}, ${isPagar})"><i class="fas fa-sync"></i> Mudar Status</button></td>
                     </tr>
                 `;
             });
@@ -546,11 +557,18 @@
                         <td>${item.venc}</td>
                         <td>${item.fornecedor}</td>
                         <td>${item.desc}</td>
-                        <td>${fmt(Number(item.valor))}</td>
+                        <td><strong>${fmt(Number(item.valor))}</strong></td>
                         <td><span class="status-badge ${item.status.toLowerCase()}">${item.status}</span></td>
-                        <td>PIX / Transferência</td>
                         <td>${item.cc}</td>
-                        <td><button class="btn btn-danger" onclick="excluirItem(${item.id}, true)">Excluir</button></td>
+                        <td>
+                            <div class="action-btns">
+                                <button class="btn ${item.status === 'PAGO' ? 'btn-warning' : 'btn-success'} btn-sm" onclick="alternarStatus(${item.id}, true)">
+                                    <i class="fas ${item.status === 'PAGO' ? 'fa-undo' : 'fa-check'}"></i> ${item.status === 'PAGO' ? 'Reverter' : 'Dar Baixa'}
+                                </button>
+                                <button class="btn btn-secondary btn-sm" onclick="editarPagar(${item.id})"><i class="fas fa-edit"></i> Editar</button>
+                                <button class="btn btn-danger btn-sm" onclick="excluirItem(${item.id}, true)"><i class="fas fa-trash"></i></button>
+                            </div>
+                        </td>
                     </tr>
                 `;
             });
@@ -564,11 +582,18 @@
                         <td>${item.venc}</td>
                         <td>${item.cliente}</td>
                         <td>${item.desc}</td>
-                        <td>${fmt(Number(item.valor))}</td>
+                        <td><strong>${fmt(Number(item.valor))}</strong></td>
                         <td><span class="status-badge ${item.status.toLowerCase()}">${item.status}</span></td>
-                        <td>PIX</td>
                         <td>${item.cc}</td>
-                        <td><button class="btn btn-danger" onclick="excluirItem(${item.id}, false)">Excluir</button></td>
+                        <td>
+                            <div class="action-btns">
+                                <button class="btn ${item.status === 'PAGO' ? 'btn-warning' : 'btn-success'} btn-sm" onclick="alternarStatus(${item.id}, false)">
+                                    <i class="fas ${item.status === 'PAGO' ? 'fa-undo' : 'fa-check'}"></i> ${item.status === 'PAGO' ? 'Reverter' : 'Dar Baixa'}
+                                </button>
+                                <button class="btn btn-secondary btn-sm" onclick="editarReceber(${item.id})"><i class="fas fa-edit"></i> Editar</button>
+                                <button class="btn btn-danger btn-sm" onclick="excluirItem(${item.id}, false)"><i class="fas fa-trash"></i></button>
+                            </div>
+                        </td>
                     </tr>
                 `;
             });
@@ -581,13 +606,19 @@
                     <tr>
                         <td>${item.sku}</td>
                         <td>${item.nome}</td>
-                        <td>${item.cat || 'Geral'}</td>
+                        <td>${item.cat || 'Peças'}</td>
                         <td><strong>${item.qtd}</strong></td>
                         <td>${item.min}</td>
                         <td>${fmt(Number(item.custo))}</td>
                         <td>${fmt(Number(item.venda))}</td>
                         <td>${fmt(Number(item.qtd) * Number(item.custo))}</td>
-                        <td><button class="btn btn-danger" onclick="excluirEstoque(${item.id})">Excluir</button></td>
+                        <td>
+                            <div class="action-btns">
+                                <button class="btn btn-primary btn-sm" onclick="movimentarEstoque(${item.id})"><i class="fas fa-exchange-alt"></i> +/-</button>
+                                <button class="btn btn-secondary btn-sm" onclick="editarEstoque(${item.id})"><i class="fas fa-edit"></i> Editar</button>
+                                <button class="btn btn-danger btn-sm" onclick="excluirEstoque(${item.id})"><i class="fas fa-trash"></i></button>
+                            </div>
+                        </td>
                     </tr>
                 `;
             });
@@ -622,14 +653,202 @@
             });
         }
 
-        // BACKUP E EXPORTAÇÃO
-        function exportarBackupJSON() {
-            const backupData = {
-                dbPagar: dbPagar,
-                dbReceber: dbReceber,
-                dbEstoque: dbEstoque,
-                exportDate: new Date().toISOString()
+        // AÇÕES PAGAR
+        function abrirModalPagar() {
+            document.getElementById('pagarId').value = '';
+            document.getElementById('modalPagarTitle').innerText = 'Nova Conta a Pagar';
+            document.getElementById('pagarFornecedor').value = '';
+            document.getElementById('pagarDesc').value = '';
+            document.getElementById('pagarValor').value = '';
+            document.getElementById('pagarVenc').value = '';
+            document.getElementById('pagarStatus').value = 'PENDENTE';
+            abrirModal('modalPagar');
+        }
+
+        function editarPagar(id) {
+            let item = dbPagar.find(x => x.id === id);
+            if (!item) return;
+            document.getElementById('pagarId').value = item.id;
+            document.getElementById('modalPagarTitle').innerText = 'Editar Conta a Pagar';
+            document.getElementById('pagarFornecedor').value = item.fornecedor;
+            document.getElementById('pagarDesc').value = item.desc;
+            document.getElementById('pagarValor').value = item.valor;
+            document.getElementById('pagarVenc').value = item.venc;
+            document.getElementById('pagarStatus').value = item.status;
+            document.getElementById('pagarCC').value = item.cc || 'PESSOAL';
+            abrirModal('modalPagar');
+        }
+
+        function salvarPagar(e) {
+            e.preventDefault();
+            let id = document.getElementById('pagarId').value;
+            let item = {
+                id: id ? Number(id) : Date.now(),
+                fornecedor: document.getElementById('pagarFornecedor').value,
+                desc: document.getElementById('pagarDesc').value,
+                valor: Number(document.getElementById('pagarValor').value),
+                venc: document.getElementById('pagarVenc').value,
+                status: document.getElementById('pagarStatus').value,
+                cc: document.getElementById('pagarCC').value
             };
+            if (id) {
+                let idx = dbPagar.findIndex(x => x.id === Number(id));
+                if (idx !== -1) dbPagar[idx] = item;
+            } else {
+                dbPagar.push(item);
+            }
+            fecharModal('modalPagar');
+            carregarDados();
+        }
+
+        // AÇÕES RECEBER
+        function abrirModalReceber() {
+            document.getElementById('receberId').value = '';
+            document.getElementById('modalReceberTitle').innerText = 'Nova Conta a Receber';
+            document.getElementById('receberCliente').value = '';
+            document.getElementById('receberDesc').value = '';
+            document.getElementById('receberValor').value = '';
+            document.getElementById('receberVenc').value = '';
+            document.getElementById('receberStatus').value = 'PENDENTE';
+            abrirModal('modalReceber');
+        }
+
+        function editarReceber(id) {
+            let item = dbReceber.find(x => x.id === id);
+            if (!item) return;
+            document.getElementById('receberId').value = item.id;
+            document.getElementById('modalReceberTitle').innerText = 'Editar Conta a Receber';
+            document.getElementById('receberCliente').value = item.cliente;
+            document.getElementById('receberDesc').value = item.desc;
+            document.getElementById('receberValor').value = item.valor;
+            document.getElementById('receberVenc').value = item.venc;
+            document.getElementById('receberStatus').value = item.status;
+            document.getElementById('receberCC').value = item.cc || 'SERVIÇOS';
+            abrirModal('modalReceber');
+        }
+
+        function salvarReceber(e) {
+            e.preventDefault();
+            let id = document.getElementById('receberId').value;
+            let item = {
+                id: id ? Number(id) : Date.now(),
+                cliente: document.getElementById('receberCliente').value,
+                desc: document.getElementById('receberDesc').value,
+                valor: Number(document.getElementById('receberValor').value),
+                venc: document.getElementById('receberVenc').value,
+                status: document.getElementById('receberStatus').value,
+                cc: document.getElementById('receberCC').value
+            };
+            if (id) {
+                let idx = dbReceber.findIndex(x => x.id === Number(id));
+                if (idx !== -1) dbReceber[idx] = item;
+            } else {
+                dbReceber.push(item);
+            }
+            fecharModal('modalReceber');
+            carregarDados();
+        }
+
+        // AÇÕES ESTOQUE
+        function abrirModalEstoque() {
+            document.getElementById('estId').value = '';
+            document.getElementById('modalEstoqueTitle').innerText = 'Cadastrar Peça no Estoque';
+            document.getElementById('estSKU').value = '';
+            document.getElementById('estNome').value = '';
+            document.getElementById('estQtd').value = '';
+            document.getElementById('estMin').value = '';
+            document.getElementById('estCusto').value = '';
+            document.getElementById('estVenda').value = '';
+            abrirModal('modalEstoque');
+        }
+
+        function editarEstoque(id) {
+            let item = dbEstoque.find(x => x.id === id);
+            if (!item) return;
+            document.getElementById('estId').value = item.id;
+            document.getElementById('modalEstoqueTitle').innerText = 'Editar Peça no Estoque';
+            document.getElementById('estSKU').value = item.sku;
+            document.getElementById('estNome').value = item.nome;
+            document.getElementById('estQtd').value = item.qtd;
+            document.getElementById('estMin').value = item.min;
+            document.getElementById('estCusto').value = item.custo;
+            document.getElementById('estVenda').value = item.venda;
+            abrirModal('modalEstoque');
+        }
+
+        function salvarEstoque(e) {
+            e.preventDefault();
+            let id = document.getElementById('estId').value;
+            let item = {
+                id: id ? Number(id) : Date.now(),
+                sku: document.getElementById('estSKU').value,
+                nome: document.getElementById('estNome').value,
+                cat: 'Peças',
+                qtd: Number(document.getElementById('estQtd').value),
+                min: Number(document.getElementById('estMin').value),
+                custo: Number(document.getElementById('estCusto').value),
+                venda: Number(document.getElementById('estVenda').value)
+            };
+            if (id) {
+                let idx = dbEstoque.findIndex(x => x.id === Number(id));
+                if (idx !== -1) dbEstoque[idx] = item;
+            } else {
+                dbEstoque.push(item);
+            }
+            fecharModal('modalEstoque');
+            carregarDados();
+        }
+
+        function movimentarEstoque(id) {
+            let item = dbEstoque.find(x => x.id === id);
+            if (!item) return;
+            document.getElementById('movEstId').value = item.id;
+            document.getElementById('movEstNome').value = item.nome;
+            document.getElementById('movQtd').value = 1;
+            abrirModal('modalMovimentar');
+        }
+
+        function salvarMovimentacaoEstoque(e) {
+            e.preventDefault();
+            let id = Number(document.getElementById('movEstId').value);
+            let tipo = document.getElementById('movTipo').value;
+            let qtd = Number(document.getElementById('movQtd').value);
+            let item = dbEstoque.find(x => x.id === id);
+            if (item) {
+                if (tipo === 'ENTRADA') item.qtd += qtd;
+                else item.qtd = Math.max(0, item.qtd - qtd);
+                carregarDados();
+            }
+            fecharModal('modalMovimentar');
+        }
+
+        function alternarStatus(id, isPagar) {
+            let list = isPagar ? dbPagar : dbReceber;
+            let item = list.find(x => x.id === id);
+            if (item) {
+                item.status = item.status === 'PAGO' ? 'PENDENTE' : 'PAGO';
+                carregarDados();
+            }
+        }
+
+        function excluirItem(id, isPagar) {
+            if (confirm('Deseja realmente excluir este lançamento?')) {
+                if (isPagar) dbPagar = dbPagar.filter(x => x.id !== id);
+                else dbReceber = dbReceber.filter(x => x.id !== id);
+                carregarDados();
+            }
+        }
+
+        function excluirEstoque(id) {
+            if (confirm('Deseja remover esta peça do estoque?')) {
+                dbEstoque = dbEstoque.filter(x => x.id !== id);
+                carregarDados();
+            }
+        }
+
+        // BACKUP
+        function exportarBackupJSON() {
+            const backupData = { dbPagar, dbReceber, dbEstoque, exportDate: new Date().toISOString() };
             const jsonStr = JSON.stringify(backupData, null, 2);
             const blob = new Blob([jsonStr], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
@@ -643,23 +862,17 @@
         function importarBackupJSON(event) {
             const file = event.target.files[0];
             if (!file) return;
-
             const reader = new FileReader();
             reader.onload = function(e) {
                 try {
                     const data = JSON.parse(e.target.result);
-                    if (data.dbPagar || data.dbReceber || data.dbEstoque) {
-                        if (data.dbPagar) dbPagar = data.dbPagar;
-                        if (data.dbReceber) dbReceber = data.dbReceber;
-                        if (data.dbEstoque) dbEstoque = data.dbEstoque;
-                        
-                        carregarDados();
-                        alert('Backup importado e restaurado com sucesso!');
-                    } else {
-                        alert('Formato de arquivo de backup inválido.');
-                    }
+                    if (data.dbPagar) dbPagar = data.dbPagar;
+                    if (data.dbReceber) dbReceber = data.dbReceber;
+                    if (data.dbEstoque) dbEstoque = data.dbEstoque;
+                    carregarDados();
+                    alert('Backup restaurado com sucesso!');
                 } catch (err) {
-                    alert('Erro ao processar o arquivo de backup.');
+                    alert('Erro ao importar backup.');
                 }
             };
             reader.readAsText(file);
@@ -669,16 +882,11 @@
             let csvContent = "data:text/csv;charset=utf-8,";
             if (tipo === 'pagar') {
                 csvContent += "Vencimento;Fornecedor;Descricao;Valor;Status;CentroCusto\n";
-                dbPagar.forEach(p => {
-                    csvContent += `${p.venc};${p.fornecedor};${p.desc};${p.valor};${p.status};${p.cc}\n`;
-                });
+                dbPagar.forEach(p => { csvContent += `${p.venc};${p.fornecedor};${p.desc};${p.valor};${p.status};${p.cc}\n`; });
             } else if (tipo === 'receber') {
                 csvContent += "Vencimento;Cliente;Descricao;Valor;Status;CentroCusto\n";
-                dbReceber.forEach(r => {
-                    csvContent += `${r.venc};${r.cliente};${r.desc};${r.valor};${r.status};${r.cc}\n`;
-                });
+                dbReceber.forEach(r => { csvContent += `${r.venc};${r.cliente};${r.desc};${r.valor};${r.status};${r.cc}\n`; });
             }
-
             const encodedUri = encodeURI(csvContent);
             const link = document.createElement("a");
             link.setAttribute("href", encodedUri);
@@ -688,73 +896,7 @@
             document.body.removeChild(link);
         }
 
-        // CADASTROS & AÇÕES
-        function salvarPagar(e) {
-            e.preventDefault();
-            dbPagar.push({
-                id: Date.now(),
-                fornecedor: document.getElementById('pagarFornecedor').value,
-                desc: document.getElementById('pagarDesc').value,
-                valor: Number(document.getElementById('pagarValor').value),
-                venc: document.getElementById('pagarVenc').value,
-                status: document.getElementById('pagarStatus').value,
-                cc: document.getElementById('pagarCC').value
-            });
-            fecharModal('modalPagar');
-            carregarDados();
-        }
-
-        function salvarReceber(e) {
-            e.preventDefault();
-            dbReceber.push({
-                id: Date.now(),
-                cliente: document.getElementById('receberCliente').value,
-                desc: document.getElementById('receberDesc').value,
-                valor: Number(document.getElementById('receberValor').value),
-                venc: document.getElementById('receberVenc').value,
-                status: document.getElementById('receberStatus').value,
-                cc: document.getElementById('receberCC').value
-            });
-            fecharModal('modalReceber');
-            carregarDados();
-        }
-
-        function salvarEstoque(e) {
-            e.preventDefault();
-            dbEstoque.push({
-                id: Date.now(),
-                sku: document.getElementById('estSKU').value,
-                nome: document.getElementById('estNome').value,
-                qtd: Number(document.getElementById('estQtd').value),
-                min: Number(document.getElementById('estMin').value),
-                custo: Number(document.getElementById('estCusto').value),
-                venda: Number(document.getElementById('estVenda').value)
-            });
-            fecharModal('modalEstoque');
-            carregarDados();
-        }
-
-        function alternarStatus(id, isPagar) {
-            let list = isPagar ? dbPagar : dbReceber;
-            let item = list.find(x => x.id === id);
-            if (item) {
-                item.status = item.status === 'PAGO' ? 'PENDENTE' : 'PAGO';
-                carregarDados();
-            }
-        }
-
-        function excluirItem(id, isPagar) {
-            if (isPagar) dbPagar = dbPagar.filter(x => x.id !== id);
-            else dbReceber = dbReceber.filter(x => x.id !== id);
-            carregarDados();
-        }
-
-        function excluirEstoque(id) {
-            dbEstoque = dbEstoque.filter(x => x.id !== id);
-            carregarDados();
-        }
-
-        // MODAIS & DROPDOWN
+        // UTILS
         function abrirModal(id) { document.getElementById(id).style.display = 'flex'; }
         function fecharModal(id) { document.getElementById(id).style.display = 'none'; }
         function toggleDateFilter() { document.getElementById('dateFilterDropdown').classList.toggle('show'); }
