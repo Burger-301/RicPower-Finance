@@ -5,7 +5,7 @@ const firebaseConfig = {
     projectId: "ricpower-finance-4312b",
     storageBucket: "ricpower-finance-4312b.firebasestorage.app",
     messagingSenderId: "632169254200",
-    appId": "1:632169254200:web:776e49224d4f61bc2e05cd"
+    appId: "1:632169254200:web:776e49224d4f61bc2e05cd"
 };
 
 // ESTADO GLOBAL DOS DADOS
@@ -58,8 +58,10 @@ function handleLogin(e) {
 }
 
 function fillDemo() {
-    document.getElementById('email').value = 'admin@richard.com';
-    document.getElementById('password').value = 'admin123';
+    const emailEl = document.getElementById('email');
+    const passEl = document.getElementById('password');
+    if (emailEl) emailEl.value = 'admin@richard.com';
+    if (passEl) passEl.value = 'admin123';
 }
 
 function handleLogout() {
@@ -132,6 +134,8 @@ function renderCharts() {
 
     const totalPagar = contasPagar.reduce((acc, c) => acc + Number(c.valor), 0);
     const totalReceber = contasReceber.reduce((acc, c) => acc + Number(c.valor), 0);
+
+    if (typeof Chart === 'undefined') return;
 
     if (chartFluxo) chartFluxo.destroy();
     chartFluxo = new Chart(ctx1, {
