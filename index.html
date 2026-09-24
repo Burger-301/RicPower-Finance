@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RICPOWER - Gestão Financeira & Estoque</title>
+    <title>RICPOWER - Gestão Financeira & Estoque Nuvem</title>
 
     <!-- Favicon da Aba do Navegador -->
     <link rel="icon" type="image/png" href="icone.png">
@@ -11,6 +11,11 @@
     <!-- Chart.js & FontAwesome -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+
+    <!-- SDKs do Firebase (Versão Compat para Nuvem Real-time) -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 
     <style>
         :root {
@@ -56,6 +61,11 @@
         .main-content { flex: 1; padding: 30px; overflow-y: auto; height: 100vh; }
         .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; flex-wrap: wrap; gap: 15px; }
         .header h1 { font-size: 26px; color: var(--primary-color); font-weight: 700; }
+
+        /* BADGE DE SINCRONIZAÇÃO NUVEM */
+        .sync-badge { font-size: 12px; padding: 6px 12px; border-radius: 20px; font-weight: bold; display: inline-flex; align-items: center; gap: 6px; }
+        .sync-badge.online { background-color: #d4edda; color: #155724; }
+        .sync-badge.offline { background-color: #fff3cd; color: #856404; }
 
         /* FILTRO DE PERÍODO GLOBAL */
         .modern-filter-container { position: relative; display: inline-block; }
@@ -176,7 +186,10 @@
         
         <!-- HEADER UNIFICADO -->
         <div class="header">
-            <h1 id="pageTitle">Visão Geral Financeira</h1>
+            <div>
+                <h1 id="pageTitle" style="display: inline-block; margin-right: 10px;">Visão Geral Financeira</h1>
+                <span id="syncBadge" class="sync-badge online"><i class="fas fa-wifi"></i> Nuvem Sincronizada</span>
+            </div>
             
             <div style="display: flex; gap: 10px; align-items: center;">
                 <button type="button" class="btn btn-secondary" onclick="carregarDados();"><i class="fas fa-sync-alt"></i> Atualizar</button>
@@ -211,8 +224,6 @@
 
         <!-- TAB 1: DASHBOARD -->
         <div id="tab-dashboard" class="tab-content active">
-            
-            <!-- CARDS KPI SEPARADOS -->
             <div class="cards-grid">
                 <div class="card real-in">
                     <div class="card-info"><h3>Caixa Real (Já Entrou)</h3><h2 id="kpiRealIn">R$ 0,00</h2></div>
@@ -357,25 +368,76 @@
             </div>
         </div>
 
-        <!-- TAB 5: DRE -->
+        <!-- TAB 5: DRE DUAL PRÁTICO -->
         <div id="tab-dre" class="tab-content">
             <div class="panel">
-                <div class="panel-header"><h3 class="panel-title">Demonstrativo do Resultado do Exercício (DRE Dual)</h3></div>
-                <div class="dashboard-grid">
-                    <div style="background: #f8fff9; padding: 20px; border-radius: 8px; border: 1px solid #c3e6cb;">
-                        <h4 style="color: #155724; margin-bottom: 15px;"><i class="fas fa-check-circle"></i> Regime de Caixa (Realizado)</h4>
-                        <p>Receita Realizada: <strong id="dreReceitaReal" style="color: var(--success-color);">R$ 0,00</strong></p>
-                        <p>Despesas Pagas: <strong id="dreDespesaReal" style="color: var(--danger-color);">R$ 0,00</strong></p>
-                        <hr style="margin: 15px 0;">
-                        <h3>Resultado em Caixa: <span id="dreResultadoReal">R$ 0,00</span></h3>
+                <div class="panel-header">
+                    <h3 class="panel-title"><i class="fas fa-file-invoice-dollar"></i> Demonstrativo do Resultado do Exercício (DRE Dual)</h3>
+                    <div id="dreHealthBadge" class="status-badge pago" style="font-size: 13px; padding: 6px 14px;">
+                        <i class="fas fa-check-circle"></i> Operação Lucrativa
                     </div>
-                    <div style="background: #fffdf0; padding: 20px; border-radius: 8px; border: 1px solid #ffeeba;">
-                        <h4 style="color: #856404; margin-bottom: 15px;"><i class="fas fa-clock"></i> Projeção de Títulos (Pendentes)</h4>
-                        <p>Receitas Pendentes: <strong id="dreReceitaPend">R$ 0,00</strong></p>
-                        <p>Despesas Pendentes: <strong id="dreDespesaPend">R$ 0,00</strong></p>
-                        <hr style="margin: 15px 0;">
-                        <h3>Projeção Final: <span id="dreResultadoProjetado">R$ 0,00</span></h3>
-                    </div>
+                </div>
+
+                <p style="color: #666; font-size: 13px; margin-bottom: 20px;">
+                    Compare os valores **Efetivamente Recebidos/Pagos (Regime de Caixa)** com o **Total Previsto de Títulos (Regime de Competência)**.
+                </p>
+
+                <!-- TABELA DE DRE COMPARATIVA LADO A LADO -->
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Estrutura Contábil / Financeira</th>
+                                <th style="text-align: right; color: var(--success-color);">Realizado (Caixa)</th>
+                                <th style="text-align: right; color: #8e44ad;">Pendente (A Entrar/Sair)</th>
+                                <th style="text-align: right; color: var(--info-color);">Projetado Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>(+) Receita Bruta (Vendas / Serviços)</strong></td>
+                                <td style="text-align: right;" id="dreRecReal">R$ 0,00</td>
+                                <td style="text-align: right;" id="dreRecPend">R$ 0,00</td>
+                                <td style="text-align: right;" id="dreRecProj"><strong>R$ 0,00</strong></td>
+                            </tr>
+                            <tr>
+                                <td style="padding-left: 25px; color: #666;">(-) Custo de Peças / Material (CMV)</td>
+                                <td style="text-align: right; color: var(--danger-color);" id="dreCustoReal">R$ 0,00</td>
+                                <td style="text-align: right; color: var(--danger-color);" id="dreCustoPend">R$ 0,00</td>
+                                <td style="text-align: right; color: var(--danger-color);" id="dreCustoProj">R$ 0,00</td>
+                            </tr>
+                            <tr style="background-color: #fafafa; font-weight: bold;">
+                                <td>(=) Lucro Bruto Operacional</td>
+                                <td style="text-align: right;" id="dreLucroBrutoReal">R$ 0,00</td>
+                                <td style="text-align: right;" id="dreLucroBrutoPend">R$ 0,00</td>
+                                <td style="text-align: right;" id="dreLucroBrutoProj">R$ 0,00</td>
+                            </tr>
+                            <tr>
+                                <td style="padding-left: 25px; color: #666;">(-) Despesas Administrativas & Fixas</td>
+                                <td style="text-align: right; color: var(--danger-color);" id="dreDespFixaReal">R$ 0,00</td>
+                                <td style="text-align: right; color: var(--danger-color);" id="dreDespFixaPend">R$ 0,00</td>
+                                <td style="text-align: right; color: var(--danger-color);" id="dreDespFixaProj">R$ 0,00</td>
+                            </tr>
+                            <tr>
+                                <td style="padding-left: 25px; color: #666;">(-) Despesas Pessoais / Retiradas</td>
+                                <td style="text-align: right; color: var(--danger-color);" id="dreDespPessReal">R$ 0,00</td>
+                                <td style="text-align: right; color: var(--danger-color);" id="dreDespPessPend">R$ 0,00</td>
+                                <td style="text-align: right; color: var(--danger-color);" id="dreDespPessProj">R$ 0,00</td>
+                            </tr>
+                            <tr style="background-color: #fffef2; font-size: 15px; font-weight: bold; border-top: 2px solid #ddd; border-bottom: 2px solid #ddd;">
+                                <td>(=) RESULTADO LÍQUIDO FINAL</td>
+                                <td style="text-align: right;" id="dreResLiquidoReal">R$ 0,00</td>
+                                <td style="text-align: right;" id="dreResLiquidoPend">R$ 0,00</td>
+                                <td style="text-align: right;" id="dreResLiquidoProj">R$ 0,00</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Margem Líquida de Lucro (%)</strong></td>
+                                <td style="text-align: right;" id="dreMargemReal"><strong>0.0%</strong></td>
+                                <td style="text-align: right;">-</td>
+                                <td style="text-align: right;" id="dreMargemProj"><strong>0.0%</strong></td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
@@ -484,22 +546,36 @@
         </div>
     </div>
 
-    <!-- SCRIPT DE INTELIGÊNCIA BANCÁRIA, AÇÕES E FILTROS DADOS -->
+    <!-- SCRIPT DE INTELIGÊNCIA BANCÁRIA, FIREBASE E DRE DUAL -->
     <script>
+        // CONFIGURAÇÃO DO PROJETO FIREBASE (Substitua com suas chaves do Firebase Console)
+        const firebaseConfig = {
+            apiKey: "SUA_API_KEY_AQUI",
+            authDomain: "seu-projeto.firebaseapp.com",
+            projectId: "seu-projeto-id",
+            storageBucket: "seu-projeto.appspot.com",
+            messagingSenderId: "123456789",
+            appId: "1:123456789:web:abcdef"
+        };
+
+        let db = null;
+        let isFirebaseConnected = false;
+
+        // INICIALIZAÇÃO FIREBASE
+        try {
+            if (firebaseConfig.apiKey && firebaseConfig.apiKey !== "SUA_API_KEY_AQUI") {
+                firebase.initializeApp(firebaseConfig);
+                db = firebase.firestore();
+                isFirebaseConnected = true;
+            }
+        } catch (e) {
+            console.warn("Firebase operando em modo local por padrão.", e);
+        }
+
         // ESTADO GLOBAL DA APLICAÇÃO
-        let dbPagar = JSON.parse(localStorage.getItem('ric_pagar')) || [
-            { id: 1, venc: '2026-01-15', fornecedor: 'LOJA DE ROUPA', desc: 'FATURA DO CARTÃO', valor: 171.35, status: 'ATRASADO', cc: 'PESSOAL' },
-            { id: 2, venc: '2026-01-20', fornecedor: 'IMOBILIARIA', desc: 'FINANCIAMENTO', valor: 1500.00, status: 'PAGO', cc: 'ADMINISTRATIVO' }
-        ];
-
-        let dbReceber = JSON.parse(localStorage.getItem('ric_receber')) || [
-            { id: 1, venc: '2026-01-15', cliente: 'LOJA DE ROUPA', desc: 'SERVIÇO PRESTADO', valor: 171.35, status: 'ATRASADO', cc: 'SERVIÇOS' },
-            { id: 2, venc: '2026-01-20', cliente: 'IMOBILIARIA', desc: 'REPARO TÉCNICO', valor: 1500.00, status: 'PAGO', cc: 'SERVIÇOS' }
-        ];
-
-        let dbEstoque = JSON.parse(localStorage.getItem('ric_estoque')) || [
-            { id: 1, sku: 'PEC-001', nome: 'Placa de Vídeo RTX 3060', cat: 'Peças', qtd: 2, min: 1, custo: 1000.00, venda: 1600.00 }
-        ];
+        let dbPagar = [];
+        let dbReceber = [];
+        let dbEstoque = [];
 
         let chartFluxo, chartCat;
 
@@ -508,7 +584,42 @@
             if (localStorage.getItem('ric_logged') === 'true') {
                 document.getElementById('login-screen').style.display = 'none';
             }
-            carregarDados();
+
+            if (isFirebaseConnected && db) {
+                document.getElementById('syncBadge').className = 'sync-badge online';
+                document.getElementById('syncBadge').innerHTML = '<i class="fas fa-wifi"></i> Nuvem Sincronizada';
+
+                db.collection("pagar").onSnapshot(snapshot => {
+                    dbPagar = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    carregarDados();
+                });
+
+                db.collection("receber").onSnapshot(snapshot => {
+                    dbReceber = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    carregarDados();
+                });
+
+                db.collection("estoque").onSnapshot(snapshot => {
+                    dbEstoque = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    carregarDados();
+                });
+            } else {
+                document.getElementById('syncBadge').className = 'sync-badge offline';
+                document.getElementById('syncBadge').innerHTML = '<i class="fas fa-exclamation-triangle"></i> Modo Off-line (Local)';
+                
+                dbPagar = JSON.parse(localStorage.getItem('ric_pagar')) || [
+                    { id: '1', venc: '2026-01-15', fornecedor: 'LOJA DE ROUPA', desc: 'FATURA DO CARTÃO', valor: 171.35, status: 'ATRASADO', cc: 'PESSOAL' },
+                    { id: '2', venc: '2026-01-20', fornecedor: 'IMOBILIARIA', desc: 'FINANCIAMENTO', valor: 1500.00, status: 'PAGO', cc: 'ADMINISTRATIVO' }
+                ];
+                dbReceber = JSON.parse(localStorage.getItem('ric_receber')) || [
+                    { id: '1', venc: '2026-01-15', cliente: 'LOJA DE ROUPA', desc: 'SERVIÇO PRESTADO', valor: 171.35, status: 'ATRASADO', cc: 'SERVIÇOS' },
+                    { id: '2', venc: '2026-01-20', cliente: 'IMOBILIARIA', desc: 'REPARO TÉCNICO', valor: 1500.00, status: 'PAGO', cc: 'SERVIÇOS' }
+                ];
+                dbEstoque = JSON.parse(localStorage.getItem('ric_estoque')) || [
+                    { id: '1', sku: 'PEC-001', nome: 'Placa de Vídeo RTX 3060', cat: 'Peças', qtd: 2, min: 1, custo: 1000.00, venda: 1600.00 }
+                ];
+                carregarDados();
+            }
         };
 
         // LOGIN / LOGOUT
@@ -538,13 +649,15 @@
         }
 
         // FORMATADOR MOEDA
-        const fmt = (v) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        const fmt = (v) => Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
-        // CARREGAR E RENDERIZAR
+        // CARREGAR E RENDERIZAR MÉTRICAS
         function carregarDados() {
-            localStorage.setItem('ric_pagar', JSON.stringify(dbPagar));
-            localStorage.setItem('ric_receber', JSON.stringify(dbReceber));
-            localStorage.setItem('ric_estoque', JSON.stringify(dbEstoque));
+            if (!isFirebaseConnected) {
+                localStorage.setItem('ric_pagar', JSON.stringify(dbPagar));
+                localStorage.setItem('ric_receber', JSON.stringify(dbReceber));
+                localStorage.setItem('ric_estoque', JSON.stringify(dbEstoque));
+            }
 
             let realIn = dbReceber.filter(x => x.status === 'PAGO').reduce((a,b) => a + Number(b.valor), 0);
             let pendingIn = dbReceber.filter(x => x.status !== 'PAGO').reduce((a,b) => a + Number(b.valor), 0);
@@ -564,17 +677,81 @@
             document.getElementById('kpiBalanceProjected').innerText = fmt(balProj);
             document.getElementById('kpiStockTotal').innerText = fmt(stockTot);
 
-            document.getElementById('dreReceitaReal').innerText = fmt(realIn);
-            document.getElementById('dreDespesaReal').innerText = fmt(realOut);
-            document.getElementById('dreResultadoReal').innerText = fmt(balReal);
-            document.getElementById('dreReceitaPend').innerText = fmt(pendingIn);
-            document.getElementById('dreDespesaPend').innerText = fmt(pendingOut);
-            document.getElementById('dreResultadoProjetado').innerText = fmt(balProj);
-
+            atualizarDREDual();
             renderTabelas();
             renderGraficos(realIn, realOut);
         }
 
+        // CÁLCULO DRE DUAL
+        function atualizarDREDual() {
+            let recReal = dbReceber.filter(x => x.status === 'PAGO').reduce((a,b) => a + Number(b.valor), 0);
+            let recPend = dbReceber.filter(x => x.status !== 'PAGO').reduce((a,b) => a + Number(b.valor), 0);
+            let recProj = recReal + recPend;
+
+            let custoReal = dbPagar.filter(x => x.status === 'PAGO' && x.cc === 'PEÇAS').reduce((a,b) => a + Number(b.valor), 0);
+            let custoPend = dbPagar.filter(x => x.status !== 'PAGO' && x.cc === 'PEÇAS').reduce((a,b) => a + Number(b.valor), 0);
+            let custoProj = custoReal + custoPend;
+
+            let despFixaReal = dbPagar.filter(x => x.status === 'PAGO' && x.cc === 'ADMINISTRATIVO').reduce((a,b) => a + Number(b.valor), 0);
+            let despFixaPend = dbPagar.filter(x => x.status !== 'PAGO' && x.cc === 'ADMINISTRATIVO').reduce((a,b) => a + Number(b.valor), 0);
+            let despFixaProj = despFixaReal + despFixaPend;
+
+            let despPessReal = dbPagar.filter(x => x.status === 'PAGO' && x.cc === 'PESSOAL').reduce((a,b) => a + Number(b.valor), 0);
+            let despPessPend = dbPagar.filter(x => x.status !== 'PAGO' && x.cc === 'PESSOAL').reduce((a,b) => a + Number(b.valor), 0);
+            let despPessProj = despPessReal + despPessPend;
+
+            let lucroBrutoReal = recReal - custoReal;
+            let lucroBrutoPend = recPend - custoPend;
+            let lucroBrutoProj = recProj - custoProj;
+
+            let resReal = lucroBrutoReal - (despFixaReal + despPessReal);
+            let resPend = lucroBrutoPend - (despFixaPend + despPessPend);
+            let resProj = lucroBrutoProj - (despFixaProj + despPessProj);
+
+            let margemReal = recReal > 0 ? ((resReal / recReal) * 100).toFixed(1) : '0.0';
+            let margemProj = recProj > 0 ? ((resProj / recProj) * 100).toFixed(1) : '0.0';
+
+            document.getElementById('dreRecReal').innerText = fmt(recReal);
+            document.getElementById('dreRecPend').innerText = fmt(recPend);
+            document.getElementById('dreRecProj').innerText = fmt(recProj);
+
+            document.getElementById('dreCustoReal').innerText = fmt(custoReal);
+            document.getElementById('dreCustoPend').innerText = fmt(custoPend);
+            document.getElementById('dreCustoProj').innerText = fmt(custoProj);
+
+            document.getElementById('dreLucroBrutoReal').innerText = fmt(lucroBrutoReal);
+            document.getElementById('dreLucroBrutoPend').innerText = fmt(lucroBrutoPend);
+            document.getElementById('dreLucroBrutoProj').innerText = fmt(lucroBrutoProj);
+
+            document.getElementById('dreDespFixaReal').innerText = fmt(despFixaReal);
+            document.getElementById('dreDespFixaPend').innerText = fmt(despFixaPend);
+            document.getElementById('dreDespFixaProj').innerText = fmt(despFixaProj);
+
+            document.getElementById('dreDespPessReal').innerText = fmt(despPessReal);
+            document.getElementById('dreDespPessPend').innerText = fmt(despPessPend);
+            document.getElementById('dreDespPessProj').innerText = fmt(despPessProj);
+
+            document.getElementById('dreResLiquidoReal').innerText = fmt(resReal);
+            document.getElementById('dreResLiquidoPend').innerText = fmt(resPend);
+            document.getElementById('dreResLiquidoProj').innerText = fmt(resProj);
+
+            document.getElementById('dreMargemReal').innerText = `${margemReal}%`;
+            document.getElementById('dreMargemProj').innerText = `${margemProj}%`;
+
+            let badge = document.getElementById('dreHealthBadge');
+            if (resReal > 0) {
+                badge.className = 'status-badge pago';
+                badge.innerHTML = '<i class="fas fa-check-circle"></i> Operação Lucrativa';
+            } else if (resReal === 0) {
+                badge.className = 'status-badge pendente';
+                badge.innerHTML = '<i class="fas fa-exclamation-circle"></i> Ponto de Equilíbrio';
+            } else {
+                badge.className = 'status-badge atrasado';
+                badge.innerHTML = '<i class="fas fa-arrow-down"></i> Operação em Prejuízo';
+            }
+        }
+
+        // RENDERIZAÇÃO DAS TABELAS
         function renderTabelas() {
             // Dashboard Vencimentos
             let tbVenc = document.getElementById('tbProximosVencimentos');
@@ -587,50 +764,48 @@
                         <td><span class="status-badge ${isPagar ? 'atrasado' : 'pago'}">${isPagar ? 'SAÍDA' : 'ENTRADA'}</span></td>
                         <td>${isPagar ? item.fornecedor : item.cliente}</td>
                         <td><strong>${fmt(Number(item.valor))}</strong></td>
-                        <td><span class="status-badge ${item.status.toLowerCase()}">${item.status}</span></td>
-                        <td><button class="btn btn-secondary btn-sm" onclick="alternarStatus(${item.id}, ${isPagar})"><i class="fas fa-sync"></i> Mudar Status</button></td>
+                        <td><span class="status-badge ${(item.status || 'PENDENTE').toLowerCase()}">${item.status}</span></td>
+                        <td><button class="btn btn-secondary btn-sm" onclick="alternarStatus('${item.id}', ${isPagar})"><i class="fas fa-sync"></i> Mudar Status</button></td>
                     </tr>
                 `;
             });
 
-            // Contas a Pagar com Filtros
+            // Contas a Pagar
             let buscaP = (document.getElementById('buscaPagar')?.value || '').toLowerCase();
             let statusP = document.getElementById('filtroStatusPagar')?.value || 'TODOS';
             let ccP = document.getElementById('filtroCCPagar')?.value || 'TODOS';
 
             let tbP = document.getElementById('tbPagar');
             tbP.innerHTML = '';
-            
-            let pagarFiltrado = dbPagar.filter(item => {
+
+            dbPagar.filter(item => {
                 let matchBusca = (item.fornecedor || '').toLowerCase().includes(buscaP) || (item.desc || '').toLowerCase().includes(buscaP);
                 let matchStatus = statusP === 'TODOS' || item.status === statusP;
                 let matchCC = ccP === 'TODOS' || item.cc === ccP;
                 return matchBusca && matchStatus && matchCC;
-            });
-
-            pagarFiltrado.forEach(item => {
+            }).forEach(item => {
                 tbP.innerHTML += `
                     <tr>
                         <td>${item.venc}</td>
                         <td>${item.fornecedor}</td>
                         <td>${item.desc}</td>
                         <td><strong>${fmt(Number(item.valor))}</strong></td>
-                        <td><span class="status-badge ${item.status.toLowerCase()}">${item.status}</span></td>
+                        <td><span class="status-badge ${(item.status || 'PENDENTE').toLowerCase()}">${item.status}</span></td>
                         <td>${item.cc || '-'}</td>
                         <td>
                             <div class="action-btns">
-                                <button class="btn ${item.status === 'PAGO' ? 'btn-warning' : 'btn-success'} btn-sm" onclick="alternarStatus(${item.id}, true)">
+                                <button class="btn ${item.status === 'PAGO' ? 'btn-warning' : 'btn-success'} btn-sm" onclick="alternarStatus('${item.id}', true)">
                                     <i class="fas ${item.status === 'PAGO' ? 'fa-undo' : 'fa-check'}"></i> ${item.status === 'PAGO' ? 'Reverter' : 'Dar Baixa'}
                                 </button>
-                                <button class="btn btn-secondary btn-sm" onclick="editarPagar(${item.id})"><i class="fas fa-edit"></i> Editar</button>
-                                <button class="btn btn-danger btn-sm" onclick="excluirItem(${item.id}, true)"><i class="fas fa-trash"></i></button>
+                                <button class="btn btn-secondary btn-sm" onclick="editarPagar('${item.id}')"><i class="fas fa-edit"></i> Editar</button>
+                                <button class="btn btn-danger btn-sm" onclick="excluirItem('${item.id}', true)"><i class="fas fa-trash"></i></button>
                             </div>
                         </td>
                     </tr>
                 `;
             });
 
-            // Contas a Receber com Filtros
+            // Contas a Receber
             let buscaR = (document.getElementById('buscaReceber')?.value || '').toLowerCase();
             let statusR = document.getElementById('filtroStatusReceber')?.value || 'TODOS';
             let ccR = document.getElementById('filtroCCReceber')?.value || 'TODOS';
@@ -638,50 +813,46 @@
             let tbR = document.getElementById('tbReceber');
             tbR.innerHTML = '';
 
-            let receberFiltrado = dbReceber.filter(item => {
+            dbReceber.filter(item => {
                 let matchBusca = (item.cliente || '').toLowerCase().includes(buscaR) || (item.desc || '').toLowerCase().includes(buscaR);
                 let matchStatus = statusR === 'TODOS' || item.status === statusR;
                 let matchCC = ccR === 'TODOS' || item.cc === ccR;
                 return matchBusca && matchStatus && matchCC;
-            });
-
-            receberFiltrado.forEach(item => {
+            }).forEach(item => {
                 tbR.innerHTML += `
                     <tr>
                         <td>${item.venc}</td>
                         <td>${item.cliente}</td>
                         <td>${item.desc}</td>
                         <td><strong>${fmt(Number(item.valor))}</strong></td>
-                        <td><span class="status-badge ${item.status.toLowerCase()}">${item.status}</span></td>
+                        <td><span class="status-badge ${(item.status || 'PENDENTE').toLowerCase()}">${item.status}</span></td>
                         <td>${item.cc || '-'}</td>
                         <td>
                             <div class="action-btns">
-                                <button class="btn ${item.status === 'PAGO' ? 'btn-warning' : 'btn-success'} btn-sm" onclick="alternarStatus(${item.id}, false)">
+                                <button class="btn ${item.status === 'PAGO' ? 'btn-warning' : 'btn-success'} btn-sm" onclick="alternarStatus('${item.id}', false)">
                                     <i class="fas ${item.status === 'PAGO' ? 'fa-undo' : 'fa-check'}"></i> ${item.status === 'PAGO' ? 'Reverter' : 'Dar Baixa'}
                                 </button>
-                                <button class="btn btn-secondary btn-sm" onclick="editarReceber(${item.id})"><i class="fas fa-edit"></i> Editar</button>
-                                <button class="btn btn-danger btn-sm" onclick="excluirItem(${item.id}, false)"><i class="fas fa-trash"></i></button>
+                                <button class="btn btn-secondary btn-sm" onclick="editarReceber('${item.id}')"><i class="fas fa-edit"></i> Editar</button>
+                                <button class="btn btn-danger btn-sm" onclick="excluirItem('${item.id}', false)"><i class="fas fa-trash"></i></button>
                             </div>
                         </td>
                     </tr>
                 `;
             });
 
-            // Estoque com Filtros
+            // Estoque
             let buscaE = (document.getElementById('buscaEstoque')?.value || '').toLowerCase();
             let statusE = document.getElementById('filtroStatusEstoque')?.value || 'TODOS';
 
             let tbE = document.getElementById('tbEstoque');
             tbE.innerHTML = '';
 
-            let estoqueFiltrado = dbEstoque.filter(item => {
+            dbEstoque.filter(item => {
                 let matchBusca = (item.nome || '').toLowerCase().includes(buscaE) || (item.sku || '').toLowerCase().includes(buscaE);
                 let isBaixo = Number(item.qtd) <= Number(item.min);
                 let matchStatus = statusE === 'TODOS' || (statusE === 'BAIXO' && isBaixo) || (statusE === 'NORMAL' && !isBaixo);
                 return matchBusca && matchStatus;
-            });
-
-            estoqueFiltrado.forEach(item => {
+            }).forEach(item => {
                 let isBaixo = Number(item.qtd) <= Number(item.min);
                 tbE.innerHTML += `
                     <tr>
@@ -695,9 +866,9 @@
                         <td>${fmt(Number(item.qtd) * Number(item.custo))}</td>
                         <td>
                             <div class="action-btns">
-                                <button class="btn btn-primary btn-sm" onclick="movimentarEstoque(${item.id})"><i class="fas fa-exchange-alt"></i> +/-</button>
-                                <button class="btn btn-secondary btn-sm" onclick="editarEstoque(${item.id})"><i class="fas fa-edit"></i> Editar</button>
-                                <button class="btn btn-danger btn-sm" onclick="excluirEstoque(${item.id})"><i class="fas fa-trash"></i></button>
+                                <button class="btn btn-primary btn-sm" onclick="movimentarEstoque('${item.id}')"><i class="fas fa-exchange-alt"></i> +/-</button>
+                                <button class="btn btn-secondary btn-sm" onclick="editarEstoque('${item.id}')"><i class="fas fa-edit"></i> Editar</button>
+                                <button class="btn btn-danger btn-sm" onclick="excluirEstoque('${item.id}')"><i class="fas fa-trash"></i></button>
                             </div>
                         </td>
                     </tr>
@@ -734,23 +905,122 @@
             });
         }
 
-        // AÇÕES PAGAR
-        function abrirModalPagar() {
-            document.getElementById('pagarId').value = '';
-            document.getElementById('modalPagarTitle').innerText = 'Nova Conta a Pagar';
-            document.getElementById('pagarFornecedor').value = '';
-            document.getElementById('pagarDesc').value = '';
-            document.getElementById('pagarValor').value = '';
-            document.getElementById('pagarVenc').value = '';
-            document.getElementById('pagarStatus').value = 'PENDENTE';
-            abrirModal('modalPagar');
+        // ESCRITAS / CRUD
+        function salvarPagar(e) {
+            e.preventDefault();
+            let id = document.getElementById('pagarId').value || String(Date.now());
+            let item = {
+                fornecedor: document.getElementById('pagarFornecedor').value,
+                desc: document.getElementById('pagarDesc').value,
+                valor: Number(document.getElementById('pagarValor').value),
+                venc: document.getElementById('pagarVenc').value,
+                status: document.getElementById('pagarStatus').value,
+                cc: document.getElementById('pagarCC').value
+            };
+
+            if (isFirebaseConnected && db) {
+                db.collection("pagar").doc(id).set(item);
+            } else {
+                let idx = dbPagar.findIndex(x => String(x.id) === String(id));
+                if (idx !== -1) dbPagar[idx] = { id, ...item };
+                else dbPagar.push({ id, ...item });
+                carregarDados();
+            }
+            fecharModal('modalPagar');
         }
 
+        function salvarReceber(e) {
+            e.preventDefault();
+            let id = document.getElementById('receberId').value || String(Date.now());
+            let item = {
+                cliente: document.getElementById('receberCliente').value,
+                desc: document.getElementById('receberDesc').value,
+                valor: Number(document.getElementById('receberValor').value),
+                venc: document.getElementById('receberVenc').value,
+                status: document.getElementById('receberStatus').value,
+                cc: document.getElementById('receberCC').value
+            };
+
+            if (isFirebaseConnected && db) {
+                db.collection("receber").doc(id).set(item);
+            } else {
+                let idx = dbReceber.findIndex(x => String(x.id) === String(id));
+                if (idx !== -1) dbReceber[idx] = { id, ...item };
+                else dbReceber.push({ id, ...item });
+                carregarDados();
+            }
+            fecharModal('modalReceber');
+        }
+
+        function salvarEstoque(e) {
+            e.preventDefault();
+            let id = document.getElementById('estId').value || String(Date.now());
+            let item = {
+                sku: document.getElementById('estSKU').value,
+                nome: document.getElementById('estNome').value,
+                cat: 'Peças',
+                qtd: Number(document.getElementById('estQtd').value),
+                min: Number(document.getElementById('estMin').value),
+                custo: Number(document.getElementById('estCusto').value),
+                venda: Number(document.getElementById('estVenda').value)
+            };
+
+            if (isFirebaseConnected && db) {
+                db.collection("estoque").doc(id).set(item);
+            } else {
+                let idx = dbEstoque.findIndex(x => String(x.id) === String(id));
+                if (idx !== -1) dbEstoque[idx] = { id, ...item };
+                else dbEstoque.push({ id, ...item });
+                carregarDados();
+            }
+            fecharModal('modalEstoque');
+        }
+
+        function alternarStatus(id, isPagar) {
+            let collection = isPagar ? "pagar" : "receber";
+            let list = isPagar ? dbPagar : dbReceber;
+            let item = list.find(x => String(x.id) === String(id));
+            if (item) {
+                let novoStatus = item.status === 'PAGO' ? 'PENDENTE' : 'PAGO';
+                if (isFirebaseConnected && db) {
+                    db.collection(collection).doc(String(id)).update({ status: novoStatus });
+                } else {
+                    item.status = novoStatus;
+                    carregarDados();
+                }
+            }
+        }
+
+        function excluirItem(id, isPagar) {
+            if (confirm('Deseja realmente excluir este lançamento?')) {
+                let collection = isPagar ? "pagar" : "receber";
+                if (isFirebaseConnected && db) {
+                    db.collection(collection).doc(String(id)).delete();
+                } else {
+                    if (isPagar) dbPagar = dbPagar.filter(x => String(x.id) !== String(id));
+                    else dbReceber = dbReceber.filter(x => String(x.id) !== String(id));
+                    carregarDados();
+                }
+            }
+        }
+
+        function excluirEstoque(id) {
+            if (confirm('Deseja remover esta peça do estoque?')) {
+                if (isFirebaseConnected && db) {
+                    db.collection("estoque").doc(String(id)).delete();
+                } else {
+                    dbEstoque = dbEstoque.filter(x => String(x.id) !== String(id));
+                    carregarDados();
+                }
+            }
+        }
+
+        // ABRIR E EDITAR MODAIS
+        function abrirModalPagar() { document.getElementById('pagarId').value = ''; abrirModal('modalPagar'); }
         function editarPagar(id) {
-            let item = dbPagar.find(x => x.id === id);
+            let item = dbPagar.find(x => String(x.id) === String(id));
             if (!item) return;
             document.getElementById('pagarId').value = item.id;
-            document.getElementById('modalPagarTitle').innerText = 'Editar Conta a Pagar';
             document.getElementById('pagarFornecedor').value = item.fornecedor;
             document.getElementById('pagarDesc').value = item.desc;
             document.getElementById('pagarValor').value = item.valor;
@@ -760,45 +1030,11 @@
             abrirModal('modalPagar');
         }
 
-        function salvarPagar(e) {
-            e.preventDefault();
-            let id = document.getElementById('pagarId').value;
-            let item = {
-                id: id ? Number(id) : Date.now(),
-                fornecedor: document.getElementById('pagarFornecedor').value,
-                desc: document.getElementById('pagarDesc').value,
-                valor: Number(document.getElementById('pagarValor').value),
-                venc: document.getElementById('pagarVenc').value,
-                status: document.getElementById('pagarStatus').value,
-                cc: document.getElementById('pagarCC').value
-            };
-            if (id) {
-                let idx = dbPagar.findIndex(x => x.id === Number(id));
-                if (idx !== -1) dbPagar[idx] = item;
-            } else {
-                dbPagar.push(item);
-            }
-            fecharModal('modalPagar');
-            carregarDados();
-        }
-
-        // AÇÕES RECEBER
-        function abrirModalReceber() {
-            document.getElementById('receberId').value = '';
-            document.getElementById('modalReceberTitle').innerText = 'Nova Conta a Receber';
-            document.getElementById('receberCliente').value = '';
-            document.getElementById('receberDesc').value = '';
-            document.getElementById('receberValor').value = '';
-            document.getElementById('receberVenc').value = '';
-            document.getElementById('receberStatus').value = 'PENDENTE';
-            abrirModal('modalReceber');
-        }
-
+        function abrirModalReceber() { document.getElementById('receberId').value = ''; abrirModal('modalReceber'); }
         function editarReceber(id) {
-            let item = dbReceber.find(x => x.id === id);
+            let item = dbReceber.find(x => String(x.id) === String(id));
             if (!item) return;
             document.getElementById('receberId').value = item.id;
-            document.getElementById('modalReceberTitle').innerText = 'Editar Conta a Receber';
             document.getElementById('receberCliente').value = item.cliente;
             document.getElementById('receberDesc').value = item.desc;
             document.getElementById('receberValor').value = item.valor;
@@ -808,46 +1044,11 @@
             abrirModal('modalReceber');
         }
 
-        function salvarReceber(e) {
-            e.preventDefault();
-            let id = document.getElementById('receberId').value;
-            let item = {
-                id: id ? Number(id) : Date.now(),
-                cliente: document.getElementById('receberCliente').value,
-                desc: document.getElementById('receberDesc').value,
-                valor: Number(document.getElementById('receberValor').value),
-                venc: document.getElementById('receberVenc').value,
-                status: document.getElementById('receberStatus').value,
-                cc: document.getElementById('receberCC').value
-            };
-            if (id) {
-                let idx = dbReceber.findIndex(x => x.id === Number(id));
-                if (idx !== -1) dbReceber[idx] = item;
-            } else {
-                dbReceber.push(item);
-            }
-            fecharModal('modalReceber');
-            carregarDados();
-        }
-
-        // AÇÕES ESTOQUE
-        function abrirModalEstoque() {
-            document.getElementById('estId').value = '';
-            document.getElementById('modalEstoqueTitle').innerText = 'Cadastrar Peça no Estoque';
-            document.getElementById('estSKU').value = '';
-            document.getElementById('estNome').value = '';
-            document.getElementById('estQtd').value = '';
-            document.getElementById('estMin').value = '';
-            document.getElementById('estCusto').value = '';
-            document.getElementById('estVenda').value = '';
-            abrirModal('modalEstoque');
-        }
-
+        function abrirModalEstoque() { document.getElementById('estId').value = ''; abrirModal('modalEstoque'); }
         function editarEstoque(id) {
-            let item = dbEstoque.find(x => x.id === id);
+            let item = dbEstoque.find(x => String(x.id) === String(id));
             if (!item) return;
             document.getElementById('estId').value = item.id;
-            document.getElementById('modalEstoqueTitle').innerText = 'Editar Peça no Estoque';
             document.getElementById('estSKU').value = item.sku;
             document.getElementById('estNome').value = item.nome;
             document.getElementById('estQtd').value = item.qtd;
@@ -857,77 +1058,33 @@
             abrirModal('modalEstoque');
         }
 
-        function salvarEstoque(e) {
-            e.preventDefault();
-            let id = document.getElementById('estId').value;
-            let item = {
-                id: id ? Number(id) : Date.now(),
-                sku: document.getElementById('estSKU').value,
-                nome: document.getElementById('estNome').value,
-                cat: 'Peças',
-                qtd: Number(document.getElementById('estQtd').value),
-                min: Number(document.getElementById('estMin').value),
-                custo: Number(document.getElementById('estCusto').value),
-                venda: Number(document.getElementById('estVenda').value)
-            };
-            if (id) {
-                let idx = dbEstoque.findIndex(x => x.id === Number(id));
-                if (idx !== -1) dbEstoque[idx] = item;
-            } else {
-                dbEstoque.push(item);
-            }
-            fecharModal('modalEstoque');
-            carregarDados();
-        }
-
         function movimentarEstoque(id) {
-            let item = dbEstoque.find(x => x.id === id);
+            let item = dbEstoque.find(x => String(x.id) === String(id));
             if (!item) return;
             document.getElementById('movEstId').value = item.id;
             document.getElementById('movEstNome').value = item.nome;
-            document.getElementById('movQtd').value = 1;
             abrirModal('modalMovimentar');
         }
 
         function salvarMovimentacaoEstoque(e) {
             e.preventDefault();
-            let id = Number(document.getElementById('movEstId').value);
+            let id = document.getElementById('movEstId').value;
             let tipo = document.getElementById('movTipo').value;
             let qtd = Number(document.getElementById('movQtd').value);
-            let item = dbEstoque.find(x => x.id === id);
+            let item = dbEstoque.find(x => String(x.id) === String(id));
             if (item) {
-                if (tipo === 'ENTRADA') item.qtd += qtd;
-                else item.qtd = Math.max(0, item.qtd - qtd);
-                carregarDados();
+                let novaQtd = tipo === 'ENTRADA' ? (Number(item.qtd) + qtd) : Math.max(0, Number(item.qtd) - qtd);
+                if (isFirebaseConnected && db) {
+                    db.collection("estoque").doc(String(id)).update({ qtd: novaQtd });
+                } else {
+                    item.qtd = novaQtd;
+                    carregarDados();
+                }
             }
             fecharModal('modalMovimentar');
         }
 
-        function alternarStatus(id, isPagar) {
-            let list = isPagar ? dbPagar : dbReceber;
-            let item = list.find(x => x.id === id);
-            if (item) {
-                item.status = item.status === 'PAGO' ? 'PENDENTE' : 'PAGO';
-                carregarDados();
-            }
-        }
-
-        function excluirItem(id, isPagar) {
-            if (confirm('Deseja realmente excluir este lançamento?')) {
-                if (isPagar) dbPagar = dbPagar.filter(x => x.id !== id);
-                else dbReceber = dbReceber.filter(x => x.id !== id);
-                carregarDados();
-            }
-        }
-
-        function excluirEstoque(id) {
-            if (confirm('Deseja remover esta peça do estoque?')) {
-                dbEstoque = dbEstoque.filter(x => x.id !== id);
-                carregarDados();
-            }
-        }
-
-        // BACKUP
+        // BACKUP E EXPORTAÇÃO
         function exportarBackupJSON() {
             const backupData = { dbPagar, dbReceber, dbEstoque, exportDate: new Date().toISOString() };
             const jsonStr = JSON.stringify(backupData, null, 2);
@@ -950,10 +1107,16 @@
                     if (data.dbPagar) dbPagar = data.dbPagar;
                     if (data.dbReceber) dbReceber = data.dbReceber;
                     if (data.dbEstoque) dbEstoque = data.dbEstoque;
+
+                    if (isFirebaseConnected && db) {
+                        dbPagar.forEach(item => db.collection("pagar").doc(String(item.id)).set(item));
+                        dbReceber.forEach(item => db.collection("receber").doc(String(item.id)).set(item));
+                        dbEstoque.forEach(item => db.collection("estoque").doc(String(item.id)).set(item));
+                    }
                     carregarDados();
-                    alert('Backup restaurado com sucesso!');
+                    alert('Backup restaurado e sincronizado com sucesso!');
                 } catch (err) {
-                    alert('Erro ao importar backup.');
+                    alert('Erro ao importar arquivo JSON de backup.');
                 }
             };
             reader.readAsText(file);
