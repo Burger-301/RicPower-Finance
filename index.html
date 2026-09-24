@@ -3,14 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RICPOWER - Gestão Financeira & Estoque</title>
+    <title>RICPOWER - Gestão Financeira & Estoque Nuvem</title>
 
-    <!-- Favicon da Aba do Navegador -->
+    <!-- Favicon -->
     <link rel="icon" type="image/png" href="icone.png">
 
     <!-- Chart.js & FontAwesome -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+
+    <!-- SDKs do Firebase (Versão Compat) -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 
     <style>
         :root {
@@ -57,7 +62,12 @@
         .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; flex-wrap: wrap; gap: 15px; }
         .header h1 { font-size: 26px; color: var(--primary-color); font-weight: 700; }
 
-        /* FILTRO DE PERÍODO GLOBAL */
+        /* BADGE DE SINCRO NUVEM */
+        .sync-badge { font-size: 12px; padding: 6px 12px; border-radius: 20px; font-weight: bold; display: inline-flex; align-items: center; gap: 6px; }
+        .sync-badge.online { background-color: #d4edda; color: #155724; }
+        .sync-badge.offline { background-color: #fff3cd; color: #856404; }
+
+        /* FILTROS GLOBAL E TABELAS */
         .modern-filter-container { position: relative; display: inline-block; }
         .modern-filter-btn { background-color: var(--primary-color); color: var(--accent-color); border: 2px solid var(--primary-color); padding: 10px 18px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         .modern-filter-dropdown { display: none; position: absolute; top: 115%; right: 0; background-color: white; min-width: 280px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); border-radius: 10px; z-index: 1000; border: 1px solid #eee; overflow: hidden; }
@@ -74,10 +84,8 @@
         .btn-apply { background-color: var(--accent-color); color: var(--primary-color); }
         .btn-clear { background-color: #eee; color: #555; }
 
-        /* FILTROS INTERNOS DAS TABELAS */
         .filter-bar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
         .filter-input { padding: 8px 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 13px; outline: none; background-color: #fff; }
-        .filter-input:focus { border-color: var(--accent-color); }
 
         /* CARDS KPI DE DESTAQUE */
         .cards-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 18px; margin-bottom: 25px; }
@@ -140,7 +148,7 @@
     <div id="login-screen">
         <div class="login-card">
             <div class="logo"><i class="fas fa-bolt"></i> RICPOWER</div>
-            <p style="margin-bottom: 20px; font-size: 14px; color: #aaa;">Painel Restrito de Gestão</p>
+            <p style="margin-bottom: 20px; font-size: 14px; color: #aaa;">Sincronização em Nuvem Ativa</p>
             <form onsubmit="realizarLogin(event)">
                 <div style="margin-bottom: 15px; text-align: left;">
                     <label style="font-size: 11px; text-transform: uppercase; font-weight: bold; color: #ccc;">E-mail</label>
@@ -151,7 +159,7 @@
                     <input type="password" id="loginSenha" class="form-control" style="background: #2b2b2b; color: white; border-color: #444;" value="admin123" required>
                 </div>
                 <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; padding: 12px; font-size: 15px;">
-                    <i class="fas fa-sign-in-alt"></i> Entrar no Sistema
+                    <i class="fas fa-cloud-upload-alt"></i> Entrar & Sincronizar
                 </button>
             </form>
         </div>
@@ -165,7 +173,7 @@
         <div class="nav-link" onclick="trocarAba('contas-receber', this)"><i class="fas fa-arrow-up"></i> Contas a Receber</div>
         <div class="nav-link" onclick="trocarAba('estoque', this)"><i class="fas fa-boxes"></i> Estoque (Peças)</div>
         <div class="nav-link" onclick="trocarAba('dre', this)"><i class="fas fa-file-invoice-dollar"></i> Análise DRE</div>
-        <div class="nav-link" onclick="trocarAba('extensao', this)"><i class="fas fa-database"></i> Backup & Integrações</div>
+        <div class="nav-link" onclick="trocarAba('extensao', this)"><i class="fas fa-database"></i> Backup & Configuração</div>
         <div class="sidebar-footer">
             <button class="btn btn-danger" style="width: 100%; justify-content: center;" onclick="fazerLogout()"><i class="fas fa-power-off"></i> Sair</button>
         </div>
@@ -176,7 +184,10 @@
         
         <!-- HEADER UNIFICADO -->
         <div class="header">
-            <h1 id="pageTitle">Visão Geral Financeira</h1>
+            <div>
+                <h1 id="pageTitle" style="display: inline-block; margin-right: 10px;">Visão Geral Financeira</h1>
+                <span id="syncBadge" class="sync-badge online"><i class="fas fa-wifi"></i> Nuvem Sincronizada</span>
+            </div>
             
             <div style="display: flex; gap: 10px; align-items: center;">
                 <button type="button" class="btn btn-secondary" onclick="carregarDados();"><i class="fas fa-sync-alt"></i> Atualizar</button>
@@ -212,7 +223,6 @@
         <!-- TAB 1: DASHBOARD -->
         <div id="tab-dashboard" class="tab-content active">
             
-            <!-- CARDS KPI SEPARADOS -->
             <div class="cards-grid">
                 <div class="card real-in">
                     <div class="card-info"><h3>Caixa Real (Já Entrou)</h3><h2 id="kpiRealIn">R$ 0,00</h2></div>
@@ -368,10 +378,9 @@
                 </div>
 
                 <p style="color: #666; font-size: 13px; margin-bottom: 20px;">
-                    Compare os valores **Efetivamente Recebidos/Pagos (Regime de Caixa)** com o **Total Previsto de Títulos (Regime de Competência)**.
+                    Valores atualizados em tempo real via nuvem.
                 </p>
 
-                <!-- TABELA DE DRE COMPARATIVA -->
                 <div class="table-responsive">
                     <table>
                         <thead>
@@ -434,10 +443,7 @@
         <!-- TAB 6: BACKUP & EXTENSÃO -->
         <div id="tab-extensao" class="tab-content">
             <div class="panel">
-                <div class="panel-header"><h3 class="panel-title"><i class="fas fa-database"></i> Backup & Restauração de Dados</h3></div>
-                <p style="margin-bottom: 20px; color: #666; font-size: 14px;">
-                    Baixe uma cópia de segurança de todos os seus lançamentos e estoque ou restaure um arquivo salvo anteriormente.
-                </p>
+                <div class="panel-header"><h3 class="panel-title"><i class="fas fa-database"></i> Backup & Importação</h3></div>
                 <div style="display: flex; gap: 15px; flex-wrap: wrap; margin-bottom: 25px;">
                     <button class="btn btn-primary" onclick="exportarBackupJSON()"><i class="fas fa-download"></i> Baixar Backup Completo (JSON)</button>
                     <label class="btn btn-success" style="cursor: pointer;">
@@ -445,25 +451,6 @@
                         <input type="file" id="importFile" accept=".json" onchange="importarBackupJSON(event)" style="display: none;">
                     </label>
                 </div>
-                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                    <button class="btn btn-secondary" onclick="exportarCSV('pagar')"><i class="fas fa-file-excel"></i> Exportar Contas a Pagar (CSV)</button>
-                    <button class="btn btn-secondary" onclick="exportarCSV('receber')"><i class="fas fa-file-excel"></i> Exportar Contas a Receber (CSV)</button>
-                </div>
-            </div>
-
-            <div class="panel">
-                <div class="panel-header"><h3 class="panel-title"><i class="fab fa-chrome"></i> Integração com Extensão Chrome</h3></div>
-                <p style="margin-bottom: 15px;">Copie o manifesto abaixo para criar o seu ficheiro `manifest.json` na extensão do navegador:</p>
-                <textarea class="form-control" style="height: 140px; font-family: monospace; background: #222; color: #00ff66;" readonly>
-{
-  "manifest_version": 3,
-  "name": "RICPOWER Finance Extension",
-  "version": "1.0",
-  "description": "Lançamento rápido de contas no sistema RICPOWER",
-  "action": { "default_popup": "popup.html" },
-  "permissions": ["storage"]
-}
-                </textarea>
             </div>
         </div>
 
@@ -482,7 +469,7 @@
                 <div class="form-group"><label>Vencimento</label><input type="date" id="pagarVenc" class="form-control" required></div>
                 <div class="form-group"><label>Status</label><select id="pagarStatus" class="form-control"><option value="PENDENTE">PENDENTE</option><option value="PAGO">PAGO</option></select></div>
                 <div class="form-group"><label>Centro de Custo</label><select id="pagarCC" class="form-control"><option>PESSOAL</option><option>ADMINISTRATIVO</option><option>PEÇAS</option></select></div>
-                <button type="submit" class="btn btn-danger full" style="grid-column: 1/-1; justify-content: center; margin-top: 10px;">Salvar Conta a Pagar</button>
+                <button type="submit" class="btn btn-danger full" style="grid-column: 1/-1; justify-content: center; margin-top: 10px;">Salvar no Firebase Nuvem</button>
             </form>
         </div>
     </div>
@@ -499,7 +486,7 @@
                 <div class="form-group"><label>Vencimento</label><input type="date" id="receberVenc" class="form-control" required></div>
                 <div class="form-group"><label>Status</label><select id="receberStatus" class="form-control"><option value="PENDENTE">PENDENTE</option><option value="PAGO">PAGO</option></select></div>
                 <div class="form-group"><label>Centro de Custo</label><select id="receberCC" class="form-control"><option>SERVIÇOS</option><option>VENDAS</option></select></div>
-                <button type="submit" class="btn btn-success full" style="grid-column: 1/-1; justify-content: center; margin-top: 10px;">Salvar Conta a Receber</button>
+                <button type="submit" class="btn btn-success full" style="grid-column: 1/-1; justify-content: center; margin-top: 10px;">Salvar no Firebase Nuvem</button>
             </form>
         </div>
     </div>
@@ -516,7 +503,7 @@
                 <div class="form-group"><label>Qtd Mínima</label><input type="number" id="estMin" class="form-control" required></div>
                 <div class="form-group"><label>Preço Custo (R$)</label><input type="number" step="0.01" id="estCusto" class="form-control" required></div>
                 <div class="form-group"><label>Preço Venda (R$)</label><input type="number" step="0.01" id="estVenda" class="form-control" required></div>
-                <button type="submit" class="btn btn-primary" style="grid-column: 1/-1; justify-content: center; margin-top: 10px;">Salvar Peça</button>
+                <button type="submit" class="btn btn-primary" style="grid-column: 1/-1; justify-content: center; margin-top: 10px;">Salvar Peça na Nuvem</button>
             </form>
         </div>
     </div>
@@ -535,31 +522,71 @@
         </div>
     </div>
 
-    <!-- SCRIPT DE INTELIGÊNCIA BANCÁRIA, AÇÕES E FILTROS DADOS -->
+    <!-- SCRIPT FIREBASE NUVEM + LOCAL FALLBACK -->
     <script>
-        // ESTADO GLOBAL DA APLICAÇÃO
-        let dbPagar = JSON.parse(localStorage.getItem('ric_pagar')) || [
-            { id: 1, venc: '2026-01-15', fornecedor: 'LOJA DE ROUPA', desc: 'FATURA DO CARTÃO', valor: 171.35, status: 'ATRASADO', cc: 'PESSOAL' },
-            { id: 2, venc: '2026-01-20', fornecedor: 'IMOBILIARIA', desc: 'FINANCIAMENTO', valor: 1500.00, status: 'PAGO', cc: 'ADMINISTRATIVO' }
-        ];
+        // CONFIGURAÇÃO DO SEU PROJETO FIREBASE
+        const firebaseConfig = {
+            apiKey: "SUA_API_KEY",
+            authDomain: "seu-projeto.firebaseapp.com",
+            projectId: "seu-projeto-id",
+            storageBucket: "seu-projeto.appspot.com",
+            messagingSenderId: "123456789",
+            appId: "1:123456789:web:abcdef"
+        };
 
-        let dbReceber = JSON.parse(localStorage.getItem('ric_receber')) || [
-            { id: 1, venc: '2026-01-15', cliente: 'LOJA DE ROUPA', desc: 'SERVIÇO PRESTADO', valor: 171.35, status: 'ATRASADO', cc: 'SERVIÇOS' },
-            { id: 2, venc: '2026-01-20', cliente: 'IMOBILIARIA', desc: 'REPARO TÉCNICO', valor: 1500.00, status: 'PAGO', cc: 'SERVIÇOS' }
-        ];
+        let db = null;
+        let isFirebaseConnected = false;
 
-        let dbEstoque = JSON.parse(localStorage.getItem('ric_estoque')) || [
-            { id: 1, sku: 'PEC-001', nome: 'Placa de Vídeo RTX 3060', cat: 'Peças', qtd: 2, min: 1, custo: 1000.00, venda: 1600.00 }
-        ];
+        // INICIALIZAÇÃO FIREBASE
+        try {
+            if (firebaseConfig.apiKey !== "SUA_API_KEY") {
+                firebase.initializeApp(firebaseConfig);
+                db = firebase.firestore();
+                isFirebaseConnected = true;
+            }
+        } catch (e) {
+            console.warn("Firebase não configurado com chaves reais, operando em modo local.", e);
+        }
 
+        // ESTADO GLOBAL
+        let dbPagar = [];
+        let dbReceber = [];
+        let dbEstoque = [];
         let chartFluxo, chartCat;
 
-        // INICIALIZAÇÃO
         window.onload = function() {
             if (localStorage.getItem('ric_logged') === 'true') {
                 document.getElementById('login-screen').style.display = 'none';
             }
-            carregarDados();
+            
+            // ATIVAR ESCUTADORES EM TEMPO REAL
+            if (isFirebaseConnected && db) {
+                document.getElementById('syncBadge').className = 'sync-badge online';
+                document.getElementById('syncBadge').innerHTML = '<i class="fas fa-wifi"></i> Nuvem Sincronizada';
+
+                db.collection("pagar").onSnapshot(snapshot => {
+                    dbPagar = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    carregarDados();
+                });
+
+                db.collection("receber").onSnapshot(snapshot => {
+                    dbReceber = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    carregarDados();
+                });
+
+                db.collection("estoque").onSnapshot(snapshot => {
+                    dbEstoque = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    carregarDados();
+                });
+            } else {
+                document.getElementById('syncBadge').className = 'sync-badge offline';
+                document.getElementById('syncBadge').innerHTML = '<i class="fas fa-exclamation-triangle"></i> Modo Off-line (Local)';
+                
+                dbPagar = JSON.parse(localStorage.getItem('ric_pagar')) || [];
+                dbReceber = JSON.parse(localStorage.getItem('ric_receber')) || [];
+                dbEstoque = JSON.parse(localStorage.getItem('ric_estoque')) || [];
+                carregarDados();
+            }
         };
 
         // LOGIN / LOGOUT
@@ -588,14 +615,15 @@
             if (el) el.classList.add('active');
         }
 
-        // FORMATADOR MOEDA
-        const fmt = (v) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        const fmt = (v) => Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
-        // CARREGAR E RENDERIZAR
+        // PROCESSAMENTO DE MÉTRICAS
         function carregarDados() {
-            localStorage.setItem('ric_pagar', JSON.stringify(dbPagar));
-            localStorage.setItem('ric_receber', JSON.stringify(dbReceber));
-            localStorage.setItem('ric_estoque', JSON.stringify(dbEstoque));
+            if (!isFirebaseConnected) {
+                localStorage.setItem('ric_pagar', JSON.stringify(dbPagar));
+                localStorage.setItem('ric_receber', JSON.stringify(dbReceber));
+                localStorage.setItem('ric_estoque', JSON.stringify(dbEstoque));
+            }
 
             let realIn = dbReceber.filter(x => x.status === 'PAGO').reduce((a,b) => a + Number(b.valor), 0);
             let pendingIn = dbReceber.filter(x => x.status !== 'PAGO').reduce((a,b) => a + Number(b.valor), 0);
@@ -700,13 +728,13 @@
                         <td><span class="status-badge ${isPagar ? 'atrasado' : 'pago'}">${isPagar ? 'SAÍDA' : 'ENTRADA'}</span></td>
                         <td>${isPagar ? item.fornecedor : item.cliente}</td>
                         <td><strong>${fmt(Number(item.valor))}</strong></td>
-                        <td><span class="status-badge ${item.status.toLowerCase()}">${item.status}</span></td>
-                        <td><button class="btn btn-secondary btn-sm" onclick="alternarStatus(${item.id}, ${isPagar})"><i class="fas fa-sync"></i> Mudar Status</button></td>
+                        <td><span class="status-badge ${(item.status || 'PENDENTE').toLowerCase()}">${item.status}</span></td>
+                        <td><button class="btn btn-secondary btn-sm" onclick="alternarStatus('${item.id}', ${isPagar})"><i class="fas fa-sync"></i> Mudar Status</button></td>
                     </tr>
                 `;
             });
 
-            // Contas a Pagar com Filtros
+            // Contas a Pagar
             let buscaP = (document.getElementById('buscaPagar')?.value || '').toLowerCase();
             let statusP = document.getElementById('filtroStatusPagar')?.value || 'TODOS';
             let ccP = document.getElementById('filtroCCPagar')?.value || 'TODOS';
@@ -714,36 +742,34 @@
             let tbP = document.getElementById('tbPagar');
             tbP.innerHTML = '';
             
-            let pagarFiltrado = dbPagar.filter(item => {
+            dbPagar.filter(item => {
                 let matchBusca = (item.fornecedor || '').toLowerCase().includes(buscaP) || (item.desc || '').toLowerCase().includes(buscaP);
                 let matchStatus = statusP === 'TODOS' || item.status === statusP;
                 let matchCC = ccP === 'TODOS' || item.cc === ccP;
                 return matchBusca && matchStatus && matchCC;
-            });
-
-            pagarFiltrado.forEach(item => {
+            }).forEach(item => {
                 tbP.innerHTML += `
                     <tr>
                         <td>${item.venc}</td>
                         <td>${item.fornecedor}</td>
                         <td>${item.desc}</td>
                         <td><strong>${fmt(Number(item.valor))}</strong></td>
-                        <td><span class="status-badge ${item.status.toLowerCase()}">${item.status}</span></td>
+                        <td><span class="status-badge ${(item.status || 'PENDENTE').toLowerCase()}">${item.status}</span></td>
                         <td>${item.cc || '-'}</td>
                         <td>
                             <div class="action-btns">
-                                <button class="btn ${item.status === 'PAGO' ? 'btn-warning' : 'btn-success'} btn-sm" onclick="alternarStatus(${item.id}, true)">
+                                <button class="btn ${item.status === 'PAGO' ? 'btn-warning' : 'btn-success'} btn-sm" onclick="alternarStatus('${item.id}', true)">
                                     <i class="fas ${item.status === 'PAGO' ? 'fa-undo' : 'fa-check'}"></i> ${item.status === 'PAGO' ? 'Reverter' : 'Dar Baixa'}
                                 </button>
-                                <button class="btn btn-secondary btn-sm" onclick="editarPagar(${item.id})"><i class="fas fa-edit"></i> Editar</button>
-                                <button class="btn btn-danger btn-sm" onclick="excluirItem(${item.id}, true)"><i class="fas fa-trash"></i></button>
+                                <button class="btn btn-secondary btn-sm" onclick="editarPagar('${item.id}')"><i class="fas fa-edit"></i> Editar</button>
+                                <button class="btn btn-danger btn-sm" onclick="excluirItem('${item.id}', true)"><i class="fas fa-trash"></i></button>
                             </div>
                         </td>
                     </tr>
                 `;
             });
 
-            // Contas a Receber com Filtros
+            // Contas a Receber
             let buscaR = (document.getElementById('buscaReceber')?.value || '').toLowerCase();
             let statusR = document.getElementById('filtroStatusReceber')?.value || 'TODOS';
             let ccR = document.getElementById('filtroCCReceber')?.value || 'TODOS';
@@ -751,50 +777,46 @@
             let tbR = document.getElementById('tbReceber');
             tbR.innerHTML = '';
 
-            let receberFiltrado = dbReceber.filter(item => {
+            dbReceber.filter(item => {
                 let matchBusca = (item.cliente || '').toLowerCase().includes(buscaR) || (item.desc || '').toLowerCase().includes(buscaR);
                 let matchStatus = statusR === 'TODOS' || item.status === statusR;
                 let matchCC = ccR === 'TODOS' || item.cc === ccR;
                 return matchBusca && matchStatus && matchCC;
-            });
-
-            receberFiltrado.forEach(item => {
+            }).forEach(item => {
                 tbR.innerHTML += `
                     <tr>
                         <td>${item.venc}</td>
                         <td>${item.cliente}</td>
                         <td>${item.desc}</td>
                         <td><strong>${fmt(Number(item.valor))}</strong></td>
-                        <td><span class="status-badge ${item.status.toLowerCase()}">${item.status}</span></td>
+                        <td><span class="status-badge ${(item.status || 'PENDENTE').toLowerCase()}">${item.status}</span></td>
                         <td>${item.cc || '-'}</td>
                         <td>
                             <div class="action-btns">
-                                <button class="btn ${item.status === 'PAGO' ? 'btn-warning' : 'btn-success'} btn-sm" onclick="alternarStatus(${item.id}, false)">
+                                <button class="btn ${item.status === 'PAGO' ? 'btn-warning' : 'btn-success'} btn-sm" onclick="alternarStatus('${item.id}', false)">
                                     <i class="fas ${item.status === 'PAGO' ? 'fa-undo' : 'fa-check'}"></i> ${item.status === 'PAGO' ? 'Reverter' : 'Dar Baixa'}
                                 </button>
-                                <button class="btn btn-secondary btn-sm" onclick="editarReceber(${item.id})"><i class="fas fa-edit"></i> Editar</button>
-                                <button class="btn btn-danger btn-sm" onclick="excluirItem(${item.id}, false)"><i class="fas fa-trash"></i></button>
+                                <button class="btn btn-secondary btn-sm" onclick="editarReceber('${item.id}')"><i class="fas fa-edit"></i> Editar</button>
+                                <button class="btn btn-danger btn-sm" onclick="excluirItem('${item.id}', false)"><i class="fas fa-trash"></i></button>
                             </div>
                         </td>
                     </tr>
                 `;
             });
 
-            // Estoque com Filtros
+            // Estoque
             let buscaE = (document.getElementById('buscaEstoque')?.value || '').toLowerCase();
             let statusE = document.getElementById('filtroStatusEstoque')?.value || 'TODOS';
 
             let tbE = document.getElementById('tbEstoque');
             tbE.innerHTML = '';
 
-            let estoqueFiltrado = dbEstoque.filter(item => {
+            dbEstoque.filter(item => {
                 let matchBusca = (item.nome || '').toLowerCase().includes(buscaE) || (item.sku || '').toLowerCase().includes(buscaE);
                 let isBaixo = Number(item.qtd) <= Number(item.min);
                 let matchStatus = statusE === 'TODOS' || (statusE === 'BAIXO' && isBaixo) || (statusE === 'NORMAL' && !isBaixo);
                 return matchBusca && matchStatus;
-            });
-
-            estoqueFiltrado.forEach(item => {
+            }).forEach(item => {
                 let isBaixo = Number(item.qtd) <= Number(item.min);
                 tbE.innerHTML += `
                     <tr>
@@ -808,9 +830,9 @@
                         <td>${fmt(Number(item.qtd) * Number(item.custo))}</td>
                         <td>
                             <div class="action-btns">
-                                <button class="btn btn-primary btn-sm" onclick="movimentarEstoque(${item.id})"><i class="fas fa-exchange-alt"></i> +/-</button>
-                                <button class="btn btn-secondary btn-sm" onclick="editarEstoque(${item.id})"><i class="fas fa-edit"></i> Editar</button>
-                                <button class="btn btn-danger btn-sm" onclick="excluirEstoque(${item.id})"><i class="fas fa-trash"></i></button>
+                                <button class="btn btn-primary btn-sm" onclick="movimentarEstoque('${item.id}')"><i class="fas fa-exchange-alt"></i> +/-</button>
+                                <button class="btn btn-secondary btn-sm" onclick="editarEstoque('${item.id}')"><i class="fas fa-edit"></i> Editar</button>
+                                <button class="btn btn-danger btn-sm" onclick="excluirEstoque('${item.id}')"><i class="fas fa-trash"></i></button>
                             </div>
                         </td>
                     </tr>
@@ -818,7 +840,6 @@
             });
         }
 
-        // GRÁFICOS
         function renderGraficos(realIn, realOut) {
             const ctxFluxo = document.getElementById('chartFluxoCaixa').getContext('2d');
             if (chartFluxo) chartFluxo.destroy();
@@ -847,23 +868,122 @@
             });
         }
 
-        // AÇÕES PAGAR
-        function abrirModalPagar() {
-            document.getElementById('pagarId').value = '';
-            document.getElementById('modalPagarTitle').innerText = 'Nova Conta a Pagar';
-            document.getElementById('pagarFornecedor').value = '';
-            document.getElementById('pagarDesc').value = '';
-            document.getElementById('pagarValor').value = '';
-            document.getElementById('pagarVenc').value = '';
-            document.getElementById('pagarStatus').value = 'PENDENTE';
-            abrirModal('modalPagar');
+        // ESCRITAS NO FIREBASE OU LOCALSTORAGE
+        function salvarPagar(e) {
+            e.preventDefault();
+            let id = document.getElementById('pagarId').value || (Date.now().toString());
+            let item = {
+                fornecedor: document.getElementById('pagarFornecedor').value,
+                desc: document.getElementById('pagarDesc').value,
+                valor: Number(document.getElementById('pagarValor').value),
+                venc: document.getElementById('pagarVenc').value,
+                status: document.getElementById('pagarStatus').value,
+                cc: document.getElementById('pagarCC').value
+            };
+
+            if (isFirebaseConnected && db) {
+                db.collection("pagar").doc(id).set(item);
+            } else {
+                let idx = dbPagar.findIndex(x => String(x.id) === String(id));
+                if (idx !== -1) dbPagar[idx] = { id, ...item };
+                else dbPagar.push({ id, ...item });
+                carregarDados();
+            }
+            fecharModal('modalPagar');
         }
 
+        function salvarReceber(e) {
+            e.preventDefault();
+            let id = document.getElementById('receberId').value || (Date.now().toString());
+            let item = {
+                cliente: document.getElementById('receberCliente').value,
+                desc: document.getElementById('receberDesc').value,
+                valor: Number(document.getElementById('receberValor').value),
+                venc: document.getElementById('receberVenc').value,
+                status: document.getElementById('receberStatus').value,
+                cc: document.getElementById('receberCC').value
+            };
+
+            if (isFirebaseConnected && db) {
+                db.collection("receber").doc(id).set(item);
+            } else {
+                let idx = dbReceber.findIndex(x => String(x.id) === String(id));
+                if (idx !== -1) dbReceber[idx] = { id, ...item };
+                else dbReceber.push({ id, ...item });
+                carregarDados();
+            }
+            fecharModal('modalReceber');
+        }
+
+        function salvarEstoque(e) {
+            e.preventDefault();
+            let id = document.getElementById('estId').value || (Date.now().toString());
+            let item = {
+                sku: document.getElementById('estSKU').value,
+                nome: document.getElementById('estNome').value,
+                cat: 'Peças',
+                qtd: Number(document.getElementById('estQtd').value),
+                min: Number(document.getElementById('estMin').value),
+                custo: Number(document.getElementById('estCusto').value),
+                venda: Number(document.getElementById('estVenda').value)
+            };
+
+            if (isFirebaseConnected && db) {
+                db.collection("estoque").doc(id).set(item);
+            } else {
+                let idx = dbEstoque.findIndex(x => String(x.id) === String(id));
+                if (idx !== -1) dbEstoque[idx] = { id, ...item };
+                else dbEstoque.push({ id, ...item });
+                carregarDados();
+            }
+            fecharModal('modalEstoque');
+        }
+
+        function alternarStatus(id, isPagar) {
+            let collection = isPagar ? "pagar" : "receber";
+            let list = isPagar ? dbPagar : dbReceber;
+            let item = list.find(x => String(x.id) === String(id));
+            if (item) {
+                let novoStatus = item.status === 'PAGO' ? 'PENDENTE' : 'PAGO';
+                if (isFirebaseConnected && db) {
+                    db.collection(collection).doc(String(id)).update({ status: novoStatus });
+                } else {
+                    item.status = novoStatus;
+                    carregarDados();
+                }
+            }
+        }
+
+        function excluirItem(id, isPagar) {
+            if (confirm('Deseja excluir este item da nuvem?')) {
+                let collection = isPagar ? "pagar" : "receber";
+                if (isFirebaseConnected && db) {
+                    db.collection(collection).doc(String(id)).delete();
+                } else {
+                    if (isPagar) dbPagar = dbPagar.filter(x => String(x.id) !== String(id));
+                    else dbReceber = dbReceber.filter(x => String(x.id) !== String(id));
+                    carregarDados();
+                }
+            }
+        }
+
+        function excluirEstoque(id) {
+            if (confirm('Deseja excluir esta peça do estoque?')) {
+                if (isFirebaseConnected && db) {
+                    db.collection("estoque").doc(String(id)).delete();
+                } else {
+                    dbEstoque = dbEstoque.filter(x => String(x.id) !== String(id));
+                    carregarDados();
+                }
+            }
+        }
+
+        // AÇÕES DE EDICAO / ABERTURA
+        function abrirModalPagar() { document.getElementById('pagarId').value = ''; abrirModal('modalPagar'); }
         function editarPagar(id) {
-            let item = dbPagar.find(x => x.id === id);
+            let item = dbPagar.find(x => String(x.id) === String(id));
             if (!item) return;
             document.getElementById('pagarId').value = item.id;
-            document.getElementById('modalPagarTitle').innerText = 'Editar Conta a Pagar';
             document.getElementById('pagarFornecedor').value = item.fornecedor;
             document.getElementById('pagarDesc').value = item.desc;
             document.getElementById('pagarValor').value = item.valor;
@@ -873,45 +993,11 @@
             abrirModal('modalPagar');
         }
 
-        function salvarPagar(e) {
-            e.preventDefault();
-            let id = document.getElementById('pagarId').value;
-            let item = {
-                id: id ? Number(id) : Date.now(),
-                fornecedor: document.getElementById('pagarFornecedor').value,
-                desc: document.getElementById('pagarDesc').value,
-                valor: Number(document.getElementById('pagarValor').value),
-                venc: document.getElementById('pagarVenc').value,
-                status: document.getElementById('pagarStatus').value,
-                cc: document.getElementById('pagarCC').value
-            };
-            if (id) {
-                let idx = dbPagar.findIndex(x => x.id === Number(id));
-                if (idx !== -1) dbPagar[idx] = item;
-            } else {
-                dbPagar.push(item);
-            }
-            fecharModal('modalPagar');
-            carregarDados();
-        }
-
-        // AÇÕES RECEBER
-        function abrirModalReceber() {
-            document.getElementById('receberId').value = '';
-            document.getElementById('modalReceberTitle').innerText = 'Nova Conta a Receber';
-            document.getElementById('receberCliente').value = '';
-            document.getElementById('receberDesc').value = '';
-            document.getElementById('receberValor').value = '';
-            document.getElementById('receberVenc').value = '';
-            document.getElementById('receberStatus').value = 'PENDENTE';
-            abrirModal('modalReceber');
-        }
-
+        function abrirModalReceber() { document.getElementById('receberId').value = ''; abrirModal('modalReceber'); }
         function editarReceber(id) {
-            let item = dbReceber.find(x => x.id === id);
+            let item = dbReceber.find(x => String(x.id) === String(id));
             if (!item) return;
             document.getElementById('receberId').value = item.id;
-            document.getElementById('modalReceberTitle').innerText = 'Editar Conta a Receber';
             document.getElementById('receberCliente').value = item.cliente;
             document.getElementById('receberDesc').value = item.desc;
             document.getElementById('receberValor').value = item.valor;
@@ -921,46 +1007,11 @@
             abrirModal('modalReceber');
         }
 
-        function salvarReceber(e) {
-            e.preventDefault();
-            let id = document.getElementById('receberId').value;
-            let item = {
-                id: id ? Number(id) : Date.now(),
-                cliente: document.getElementById('receberCliente').value,
-                desc: document.getElementById('receberDesc').value,
-                valor: Number(document.getElementById('receberValor').value),
-                venc: document.getElementById('receberVenc').value,
-                status: document.getElementById('receberStatus').value,
-                cc: document.getElementById('receberCC').value
-            };
-            if (id) {
-                let idx = dbReceber.findIndex(x => x.id === Number(id));
-                if (idx !== -1) dbReceber[idx] = item;
-            } else {
-                dbReceber.push(item);
-            }
-            fecharModal('modalReceber');
-            carregarDados();
-        }
-
-        // AÇÕES ESTOQUE
-        function abrirModalEstoque() {
-            document.getElementById('estId').value = '';
-            document.getElementById('modalEstoqueTitle').innerText = 'Cadastrar Peça no Estoque';
-            document.getElementById('estSKU').value = '';
-            document.getElementById('estNome').value = '';
-            document.getElementById('estQtd').value = '';
-            document.getElementById('estMin').value = '';
-            document.getElementById('estCusto').value = '';
-            document.getElementById('estVenda').value = '';
-            abrirModal('modalEstoque');
-        }
-
+        function abrirModalEstoque() { document.getElementById('estId').value = ''; abrirModal('modalEstoque'); }
         function editarEstoque(id) {
-            let item = dbEstoque.find(x => x.id === id);
+            let item = dbEstoque.find(x => String(x.id) === String(id));
             if (!item) return;
             document.getElementById('estId').value = item.id;
-            document.getElementById('modalEstoqueTitle').innerText = 'Editar Peça no Estoque';
             document.getElementById('estSKU').value = item.sku;
             document.getElementById('estNome').value = item.nome;
             document.getElementById('estQtd').value = item.qtd;
@@ -970,135 +1021,37 @@
             abrirModal('modalEstoque');
         }
 
-        function salvarEstoque(e) {
-            e.preventDefault();
-            let id = document.getElementById('estId').value;
-            let item = {
-                id: id ? Number(id) : Date.now(),
-                sku: document.getElementById('estSKU').value,
-                nome: document.getElementById('estNome').value,
-                cat: 'Peças',
-                qtd: Number(document.getElementById('estQtd').value),
-                min: Number(document.getElementById('estMin').value),
-                custo: Number(document.getElementById('estCusto').value),
-                venda: Number(document.getElementById('estVenda').value)
-            };
-            if (id) {
-                let idx = dbEstoque.findIndex(x => x.id === Number(id));
-                if (idx !== -1) dbEstoque[idx] = item;
-            } else {
-                dbEstoque.push(item);
-            }
-            fecharModal('modalEstoque');
-            carregarDados();
-        }
-
         function movimentarEstoque(id) {
-            let item = dbEstoque.find(x => x.id === id);
+            let item = dbEstoque.find(x => String(x.id) === String(id));
             if (!item) return;
             document.getElementById('movEstId').value = item.id;
             document.getElementById('movEstNome').value = item.nome;
-            document.getElementById('movQtd').value = 1;
             abrirModal('modalMovimentar');
         }
 
         function salvarMovimentacaoEstoque(e) {
             e.preventDefault();
-            let id = Number(document.getElementById('movEstId').value);
+            let id = document.getElementById('movEstId').value;
             let tipo = document.getElementById('movTipo').value;
             let qtd = Number(document.getElementById('movQtd').value);
-            let item = dbEstoque.find(x => x.id === id);
+            let item = dbEstoque.find(x => String(x.id) === String(id));
             if (item) {
-                if (tipo === 'ENTRADA') item.qtd += qtd;
-                else item.qtd = Math.max(0, item.qtd - qtd);
-                carregarDados();
+                let novaQtd = tipo === 'ENTRADA' ? (Number(item.qtd) + qtd) : Math.max(0, Number(item.qtd) - qtd);
+                if (isFirebaseConnected && db) {
+                    db.collection("estoque").doc(String(id)).update({ qtd: novaQtd });
+                } else {
+                    item.qtd = novaQtd;
+                    carregarDados();
+                }
             }
             fecharModal('modalMovimentar');
-        }
-
-        function alternarStatus(id, isPagar) {
-            let list = isPagar ? dbPagar : dbReceber;
-            let item = list.find(x => x.id === id);
-            if (item) {
-                item.status = item.status === 'PAGO' ? 'PENDENTE' : 'PAGO';
-                carregarDados();
-            }
-        }
-
-        function excluirItem(id, isPagar) {
-            if (confirm('Deseja realmente excluir este lançamento?')) {
-                if (isPagar) dbPagar = dbPagar.filter(x => x.id !== id);
-                else dbReceber = dbReceber.filter(x => x.id !== id);
-                carregarDados();
-            }
-        }
-
-        function excluirEstoque(id) {
-            if (confirm('Deseja remover esta peça do estoque?')) {
-                dbEstoque = dbEstoque.filter(x => x.id !== id);
-                carregarDados();
-            }
-        }
-
-        // BACKUP
-        function exportarBackupJSON() {
-            const backupData = { dbPagar, dbReceber, dbEstoque, exportDate: new Date().toISOString() };
-            const jsonStr = JSON.stringify(backupData, null, 2);
-            const blob = new Blob([jsonStr], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `ricpower_backup_${new Date().toISOString().slice(0, 10)}.json`;
-            a.click();
-            URL.revokeObjectURL(url);
-        }
-
-        function importarBackupJSON(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    const data = JSON.parse(e.target.result);
-                    if (data.dbPagar) dbPagar = data.dbPagar;
-                    if (data.dbReceber) dbReceber = data.dbReceber;
-                    if (data.dbEstoque) dbEstoque = data.dbEstoque;
-                    carregarDados();
-                    alert('Backup restaurado com sucesso!');
-                } catch (err) {
-                    alert('Erro ao importar backup.');
-                }
-            };
-            reader.readAsText(file);
-        }
-
-        function exportarCSV(tipo) {
-            let csvContent = "data:text/csv;charset=utf-8,";
-            if (tipo === 'pagar') {
-                csvContent += "Vencimento;Fornecedor;Descricao;Valor;Status;CentroCusto\n";
-                dbPagar.forEach(p => { csvContent += `${p.venc};${p.fornecedor};${p.desc};${p.valor};${p.status};${p.cc}\n`; });
-            } else if (tipo === 'receber') {
-                csvContent += "Vencimento;Cliente;Descricao;Valor;Status;CentroCusto\n";
-                dbReceber.forEach(r => { csvContent += `${r.venc};${r.cliente};${r.desc};${r.valor};${r.status};${r.cc}\n`; });
-            }
-            const encodedUri = encodeURI(csvContent);
-            const link = document.createElement("a");
-            link.setAttribute("href", encodedUri);
-            link.setAttribute("download", `ricpower_${tipo}.csv`);
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
         }
 
         // UTILS
         function abrirModal(id) { document.getElementById(id).style.display = 'flex'; }
         function fecharModal(id) { document.getElementById(id).style.display = 'none'; }
         function toggleDateFilter() { document.getElementById('dateFilterDropdown').classList.toggle('show'); }
-
-        function selecionarFiltroData(tipo, txt) {
-            document.getElementById('currentPeriodText').innerText = txt;
-            document.getElementById('dateFilterDropdown').classList.remove('show');
-        }
+        function selecionarFiltroData(tipo, txt) { document.getElementById('currentPeriodText').innerText = txt; document.getElementById('dateFilterDropdown').classList.remove('show'); }
         function aplicarDataPersonalizada() {
             let i = document.getElementById('dtInicio').value;
             let f = document.getElementById('dtFim').value;
@@ -1107,10 +1060,7 @@
                 document.getElementById('dateFilterDropdown').classList.remove('show');
             }
         }
-        function limparFiltroData() {
-            document.getElementById('currentPeriodText').innerText = 'Todos os Registros';
-            document.getElementById('dateFilterDropdown').classList.remove('show');
-        }
+        function limparFiltroData() { document.getElementById('currentPeriodText').innerText = 'Todos os Registros'; document.getElementById('dateFilterDropdown').classList.remove('show'); }
     </script>
 </body>
 </html>
