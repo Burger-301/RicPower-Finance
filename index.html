@@ -119,6 +119,7 @@
         .status-badge.pago { background-color: #d4edda; color: #155724; }
         .status-badge.pendente { background-color: #fff3cd; color: #856404; }
         .status-badge.atrasado { background-color: #f8d7da; color: #721c24; }
+        .badge-fixa { background-color: #e8f4f8; color: #2980b9; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; margin-left: 5px; }
 
         /* BOTÕES */
         .btn { padding: 8px 14px; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: bold; display: inline-flex; align-items: center; gap: 6px; transition: 0.2s; text-decoration: none; }
@@ -289,7 +290,7 @@
                 <div class="panel-header">
                     <h3 class="panel-title">Gestão de Contas a Pagar</h3>
                     <div class="filter-bar">
-                        <input type="text" id="buscaPagar" class="filter-input" placeholder="🔍 Buscar fornecedor..." oninput="carregarDados()">
+                        <input type="text" id="buscaPagar" class="filter-input" placeholder="🔍 Buscar fornecedor/descrição..." oninput="carregarDados()">
                         <select id="filtroStatusPagar" class="filter-input" onchange="carregarDados()">
                             <option value="TODOS">Todos os Status</option>
                             <option value="PENDENTE">Pendente</option>
@@ -493,7 +494,14 @@
                 <div class="form-group"><label>Valor (R$)</label><input type="number" step="0.01" id="pagarValor" class="form-control" required></div>
                 <div class="form-group"><label>Vencimento</label><input type="date" id="pagarVenc" class="form-control" required></div>
                 <div class="form-group"><label>Status</label><select id="pagarStatus" class="form-control"><option value="PENDENTE">PENDENTE</option><option value="PAGO">PAGO</option></select></div>
-                <div class="form-group"><label>Centro de Custo</label><select id="pagarCC" class="form-control"><option value="ADMINISTRATIVO">ADMINISTRATIVO (DESPESA FIXA)</option><option value="PESSOAL">PESSOAL</option><option value="PEÇAS">PEÇAS</option></select></div>
+                <div class="form-group"><label>Centro de Custo</label><select id="pagarCC" class="form-control"><option value="ADMINISTRATIVO">ADMINISTRATIVO</option><option value="PESSOAL">PESSOAL</option><option value="PEÇAS">PEÇAS</option></select></div>
+                <div class="form-group full">
+                    <label>É Despesa Fixa (Recorrente Mensal)?</label>
+                    <select id="pagarFixa" class="form-control">
+                        <option value="NAO">Não (Lançamento Único)</option>
+                        <option value="SIM">Sim (Recorrente Todo Mês)</option>
+                    </select>
+                </div>
                 <button type="submit" class="btn btn-danger full" style="grid-column: 1/-1; justify-content: center; margin-top: 10px;">Salvar Conta a Pagar</button>
             </form>
         </div>
@@ -778,11 +786,12 @@
                 let matchCC = ccP === 'TODOS' || item.cc === ccP;
                 return matchBusca && matchStatus && matchCC;
             }).forEach(item => {
+                let tagFixa = (item.fixa === true || item.fixa === 'SIM') ? '<span class="badge-fixa">FIXA</span>' : '';
                 tbP.innerHTML += `
                     <tr>
                         <td>${item.venc}</td>
                         <td>${item.fornecedor}</td>
-                        <td>${item.desc}</td>
+                        <td>${item.desc} ${tagFixa}</td>
                         <td><strong>${fmt(Number(item.valor))}</strong></td>
                         <td><span class="status-badge ${(item.status || 'PENDENTE').toLowerCase()}">${item.status}</span></td>
                         <td>${item.cc || '-'}</td>
@@ -903,13 +912,16 @@
         function salvarPagar(e) {
             e.preventDefault();
             let id = document.getElementById('pagarId').value || String(Date.now());
+            let isFixa = document.getElementById('pagarFixa').value === 'SIM';
+
             let item = {
                 fornecedor: document.getElementById('pagarFornecedor').value,
                 desc: document.getElementById('pagarDesc').value,
                 valor: Number(document.getElementById('pagarValor').value),
                 venc: document.getElementById('pagarVenc').value,
                 status: document.getElementById('pagarStatus').value,
-                cc: document.getElementById('pagarCC').value
+                cc: document.getElementById('pagarCC').value,
+                fixa: isFixa
             };
 
             if (isFirebaseConnected && db) {
@@ -1009,16 +1021,17 @@
             }
         }
 
-        // AUTOMATIZAÇÃO DE DESPESAS FIXAS
+        // AUTOMATIZAÇÃO DE DESPESAS FIXAS (FILTRA POR CAMPO 'FIXA' E VERIFICA DUPLICIDADE PELA DESCRIÇÃO)
         function gerarDespesasFixasMesAtual() {
             const hoje = new Date();
             const anoAtual = hoje.getFullYear();
             const mesAtual = String(hoje.getMonth() + 1).padStart(2, '0');
 
-            const contasFixas = dbPagar.filter(item => item.cc === 'ADMINISTRATIVO');
+            // Filtra as contas que foram marcadas com "Despesa Fixa = Sim" no cadastro
+            const contasFixas = dbPagar.filter(item => item.fixa === true || item.fixa === 'SIM');
 
             if (contasFixas.length === 0) {
-                alert("Nenhuma conta fixa (ADMINISTRATIVO) foi encontrada para duplicar.");
+                alert("Nenhuma conta marcada como FIXA foi encontrada no cadastro.");
                 return;
             }
 
@@ -1028,8 +1041,9 @@
                 const diaVenc = (conta.venc && conta.venc.split('-')[2]) ? conta.venc.split('-')[2] : '10';
                 const novoVencimento = `${anoAtual}-${mesAtual}-${diaVenc}`;
 
+                // Verifica se uma conta com a mesma DESCRIÇÃO já foi lançada para este vencimento no mês
                 const jaExiste = dbPagar.some(x => 
-                    x.fornecedor === conta.fornecedor && 
+                    (x.desc || '').toLowerCase().trim() === (conta.desc || '').toLowerCase().trim() && 
                     x.venc === novoVencimento
                 );
 
@@ -1041,7 +1055,8 @@
                         valor: Number(conta.valor),
                         venc: novoVencimento,
                         status: 'PENDENTE',
-                        cc: 'ADMINISTRATIVO'
+                        cc: conta.cc || 'ADMINISTRATIVO',
+                        fixa: true
                     };
 
                     if (isFirebaseConnected && db) {
@@ -1059,7 +1074,11 @@
         }
 
         // CONTROLADORES DE MODAL
-        function abrirModalPagar() { document.getElementById('pagarId').value = ''; abrirModal('modalPagar'); }
+        function abrirModalPagar() { 
+            document.getElementById('pagarId').value = ''; 
+            document.getElementById('pagarFixa').value = 'NAO';
+            abrirModal('modalPagar'); 
+        }
         function editarPagar(id) {
             let item = dbPagar.find(x => String(x.id) === String(id));
             if (!item) return;
@@ -1070,6 +1089,7 @@
             document.getElementById('pagarVenc').value = item.venc;
             document.getElementById('pagarStatus').value = item.status;
             document.getElementById('pagarCC').value = item.cc || 'PESSOAL';
+            document.getElementById('pagarFixa').value = (item.fixa === true || item.fixa === 'SIM') ? 'SIM' : 'NAO';
             abrirModal('modalPagar');
         }
 
