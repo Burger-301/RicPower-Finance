@@ -302,6 +302,7 @@
                             <option value="ADMINISTRATIVO">Administrativo</option>
                             <option value="PEÇAS">Peças</option>
                         </select>
+                        <button class="btn btn-warning" onclick="gerarDespesasFixasMesAtual()"><i class="fas fa-bolt"></i> Gerar Fixas do Mês</button>
                         <button class="btn btn-danger" onclick="abrirModalPagar()"><i class="fas fa-plus"></i> Nova Conta a Pagar</button>
                     </div>
                 </div>
@@ -492,7 +493,7 @@
                 <div class="form-group"><label>Valor (R$)</label><input type="number" step="0.01" id="pagarValor" class="form-control" required></div>
                 <div class="form-group"><label>Vencimento</label><input type="date" id="pagarVenc" class="form-control" required></div>
                 <div class="form-group"><label>Status</label><select id="pagarStatus" class="form-control"><option value="PENDENTE">PENDENTE</option><option value="PAGO">PAGO</option></select></div>
-                <div class="form-group"><label>Centro de Custo</label><select id="pagarCC" class="form-control"><option>PESSOAL</option><option>ADMINISTRATIVO</option><option>PEÇAS</option></select></div>
+                <div class="form-group"><label>Centro de Custo</label><select id="pagarCC" class="form-control"><option value="ADMINISTRATIVO">ADMINISTRATIVO (DESPESA FIXA)</option><option value="PESSOAL">PESSOAL</option><option value="PEÇAS">PEÇAS</option></select></div>
                 <button type="submit" class="btn btn-danger full" style="grid-column: 1/-1; justify-content: center; margin-top: 10px;">Salvar Conta a Pagar</button>
             </form>
         </div>
@@ -1006,6 +1007,55 @@
                     carregarDados();
                 }
             }
+        }
+
+        // AUTOMATIZAÇÃO DE DESPESAS FIXAS
+        function gerarDespesasFixasMesAtual() {
+            const hoje = new Date();
+            const anoAtual = hoje.getFullYear();
+            const mesAtual = String(hoje.getMonth() + 1).padStart(2, '0');
+
+            const contasFixas = dbPagar.filter(item => item.cc === 'ADMINISTRATIVO');
+
+            if (contasFixas.length === 0) {
+                alert("Nenhuma conta fixa (ADMINISTRATIVO) foi encontrada para duplicar.");
+                return;
+            }
+
+            let novosLancamentos = 0;
+
+            contasFixas.forEach(conta => {
+                const diaVenc = (conta.venc && conta.venc.split('-')[2]) ? conta.venc.split('-')[2] : '10';
+                const novoVencimento = `${anoAtual}-${mesAtual}-${diaVenc}`;
+
+                const jaExiste = dbPagar.some(x => 
+                    x.fornecedor === conta.fornecedor && 
+                    x.venc === novoVencimento
+                );
+
+                if (!jaExiste) {
+                    const novoId = String(Date.now() + Math.random());
+                    const novaConta = {
+                        fornecedor: conta.fornecedor,
+                        desc: conta.desc,
+                        valor: Number(conta.valor),
+                        venc: novoVencimento,
+                        status: 'PENDENTE',
+                        cc: 'ADMINISTRATIVO'
+                    };
+
+                    if (isFirebaseConnected && db) {
+                        db.collection("pagar").doc(novoId).set(novaConta);
+                    } else {
+                        dbPagar.push({ id: novoId, ...novaConta });
+                    }
+                    novosLancamentos++;
+                }
+            });
+
+            if (!isFirebaseConnected) carregarDados();
+            
+            alert(`${novosLancamentos} despesa(s) fixa(s) gerada(s) para o mês ${mesAtual}/${anoAtual}!`);
         }
 
         // CONTROLADORES DE MODAL
