@@ -379,7 +379,7 @@
                 </div>
 
                 <p style="color: #666; font-size: 13px; margin-bottom: 20px;">
-                   <!-- Compare os valores **Efetivamente Recebidos/Pagos (Regime de Caixa)** com o **Total Previsto de Títulos (Regime de Competência)**.-->
+                    Visão unificada entre o <strong>Regime de Caixa (Realizado)</strong> e o <strong>Regime de Competência (Projetado Total)</strong>.
                 </p>
 
                 <!-- TABELA DE DRE COMPARATIVA LADO A LADO -->
@@ -548,14 +548,15 @@
 
     <!-- SCRIPT DE INTELIGÊNCIA BANCÁRIA, FIREBASE E DRE DUAL -->
     <script>
-        // CONFIGURAÇÃO DO PROJETO FIREBASE (Substitua com suas chaves do Firebase Console)
+        // CONFIGURAÇÃO REAL DO PROJETO FIREBASE (RICPOWER-FINANCE-4312B)
         const firebaseConfig = {
-            apiKey: "SUA_API_KEY_AQUI",
-            authDomain: "seu-projeto.firebaseapp.com",
-            projectId: "seu-projeto-id",
-            storageBucket: "seu-projeto.appspot.com",
-            messagingSenderId: "123456789",
-            appId: "1:123456789:web:abcdef"
+            apiKey: "AIzaSyAMIo-e1IQVvoVNvHfjyCvQ3mpmA8XpEZU",
+            authDomain: "ricpower-finance-4312b.firebaseapp.com",
+            databaseURL: "https://ricpower-finance-4312b-default-rtdb.firebaseio.com",
+            projectId: "ricpower-finance-4312b",
+            storageBucket: "ricpower-finance-4312b.firebasestorage.app",
+            messagingSenderId: "632169254200",
+            appId: "1:632169254200:web:776e49224d4f61bc2e05cd"
         };
 
         let db = null;
@@ -563,15 +564,7 @@
 
         // INICIALIZAÇÃO FIREBASE
         try {
-            if (firebaseConfig.apiKey && firebaseConfig.apiKey !== "const firebaseConfig = {
-  apiKey: "AIzaSyAMIo-e1IQVvoVNvHfjyCvQ3mpmA8XpEZU",
-  authDomain: "ricpower-finance-4312b.firebaseapp.com",
-  databaseURL: "https://ricpower-finance-4312b-default-rtdb.firebaseio.com",
-  projectId: "ricpower-finance-4312b",
-  storageBucket: "ricpower-finance-4312b.firebasestorage.app",
-  messagingSenderId: "632169254200",
-  appId: "1:632169254200:web:776e49224d4f61bc2e05cd"
-};") {
+            if (firebaseConfig.apiKey) {
                 firebase.initializeApp(firebaseConfig);
                 db = firebase.firestore();
                 isFirebaseConnected = true;
@@ -587,7 +580,7 @@
 
         let chartFluxo, chartCat;
 
-        // INICIALIZAÇÃO
+        // INICIALIZAÇÃO DE DADOS AO CARREGAR A PÁGINA
         window.onload = function() {
             if (localStorage.getItem('ric_logged') === 'true') {
                 document.getElementById('login-screen').style.display = 'none';
@@ -615,17 +608,9 @@
                 document.getElementById('syncBadge').className = 'sync-badge offline';
                 document.getElementById('syncBadge').innerHTML = '<i class="fas fa-exclamation-triangle"></i> Modo Off-line (Local)';
                 
-                dbPagar = JSON.parse(localStorage.getItem('ric_pagar')) || [
-                    { id: '1', venc: '2026-01-15', fornecedor: 'LOJA DE ROUPA', desc: 'FATURA DO CARTÃO', valor: 171.35, status: 'ATRASADO', cc: 'PESSOAL' },
-                    { id: '2', venc: '2026-01-20', fornecedor: 'IMOBILIARIA', desc: 'FINANCIAMENTO', valor: 1500.00, status: 'PAGO', cc: 'ADMINISTRATIVO' }
-                ];
-                dbReceber = JSON.parse(localStorage.getItem('ric_receber')) || [
-                    { id: '1', venc: '2026-01-15', cliente: 'LOJA DE ROUPA', desc: 'SERVIÇO PRESTADO', valor: 171.35, status: 'ATRASADO', cc: 'SERVIÇOS' },
-                    { id: '2', venc: '2026-01-20', cliente: 'IMOBILIARIA', desc: 'REPARO TÉCNICO', valor: 1500.00, status: 'PAGO', cc: 'SERVIÇOS' }
-                ];
-                dbEstoque = JSON.parse(localStorage.getItem('ric_estoque')) || [
-                    { id: '1', sku: 'PEC-001', nome: 'Placa de Vídeo RTX 3060', cat: 'Peças', qtd: 2, min: 1, custo: 1000.00, venda: 1600.00 }
-                ];
+                dbPagar = JSON.parse(localStorage.getItem('ric_pagar')) || [];
+                dbReceber = JSON.parse(localStorage.getItem('ric_receber')) || [];
+                dbEstoque = JSON.parse(localStorage.getItem('ric_estoque')) || [];
                 carregarDados();
             }
         };
@@ -648,7 +633,7 @@
             document.getElementById('login-screen').style.display = 'flex';
         }
 
-        // TABS
+        // CONTROLADOR DE ABAS
         function trocarAba(abaId, el) {
             document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.nav-link').forEach(n => n.classList.remove('active'));
@@ -656,7 +641,7 @@
             if (el) el.classList.add('active');
         }
 
-        // FORMATADOR MOEDA
+        // FORMATADOR DE MOEDA
         const fmt = (v) => Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
         // CARREGAR E RENDERIZAR MÉTRICAS
@@ -913,7 +898,7 @@
             });
         }
 
-        // ESCRITAS / CRUD
+        // OPERAÇÕES DE BANCO DE DADOS (CRUD)
         function salvarPagar(e) {
             e.preventDefault();
             let id = document.getElementById('pagarId').value || String(Date.now());
@@ -1023,7 +1008,7 @@
             }
         }
 
-        // ABRIR E EDITAR MODAIS
+        // CONTROLADORES DE MODAL
         function abrirModalPagar() { document.getElementById('pagarId').value = ''; abrirModal('modalPagar'); }
         function editarPagar(id) {
             let item = dbPagar.find(x => String(x.id) === String(id));
@@ -1148,7 +1133,7 @@
             document.body.removeChild(link);
         }
 
-        // UTILS
+        // UTILS E FILTROS
         function abrirModal(id) { document.getElementById(id).style.display = 'flex'; }
         function fecharModal(id) { document.getElementById(id).style.display = 'none'; }
         function toggleDateFilter() { document.getElementById('dateFilterDropdown').classList.toggle('show'); }
