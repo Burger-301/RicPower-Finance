@@ -1,4 +1,21 @@
-// CONFIGURAÇÃO E DADOS LOCAIS
+// 1. CONFIGURAÇÃO OFICIAL DO FIREBASE COM REALTIME DATABASE
+const firebaseConfig = {
+  apiKey: "AIzaSyAMIo-e1IQVvoVNvHfjyCvQ3mpmA8XpEZU",
+  authDomain: "ricpower-finance-4312b.firebaseapp.com",
+  databaseURL: "https://ricpower-finance-4312b-default-rtdb.firebaseio.com",
+  projectId: "ricpower-finance-4312b",
+  storageBucket: "ricpower-finance-4312b.firebasestorage.app",
+  messagingSenderId: "632169254200",
+  appId: "1:632169254200:web:776e49224d4f61bc2e05cd"
+};
+
+// Inicialização da base de dados Firebase
+if (typeof firebase !== 'undefined' && !firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+}
+const db = (typeof firebase !== 'undefined') ? firebase.database() : null;
+
+// HELPERS DE DATA E FORMATAÇÃO
 const getMesAtualStr = () => {
     const d = new Date();
     const y = d.getFullYear();
@@ -8,7 +25,7 @@ const getMesAtualStr = () => {
 
 const mesAtual = getMesAtualStr();
 
-// Carregamento com backup local (localStorage)
+// DADOS LOCAIS DE ARMAZENAMENTO E BACKUP
 let contasPagar = JSON.parse(localStorage.getItem('ricpower_pagar')) || [
     { id: '1', vencimento: `${mesAtual}-15`, fornecedor: 'RGE Energia', descricao: 'Conta de Energia Elétrica', valor: 1000.00, categoria: 'Custos Fixos', status: 'PAGO', dataPagamento: `${mesAtual}-15`, tipoPagamento: 'PIX' },
     { id: '2', vencimento: `${mesAtual}-21`, fornecedor: 'AliExpress', descricao: 'Lote de Placas e Chips', valor: 850.00, categoria: 'Peças Novas', status: 'PENDENTE', dataPagamento: '', tipoPagamento: 'PIX' },
@@ -31,10 +48,39 @@ let dataFimCustom = '';
 let fluxoCaixaChartInstance = null;
 let centroCustoChartInstance = null;
 
-function salvarDadosLocal() {
+// GUARDA LOCALMENTE E SINCRONIZA COM A NUVEM
+function salvarDadosLocal(skipNuvem = false) {
     localStorage.setItem('ricpower_pagar', JSON.stringify(contasPagar));
     localStorage.setItem('ricpower_receber', JSON.stringify(contasReceber));
     localStorage.setItem('ricpower_estoque', JSON.stringify(estoque));
+
+    if (db && !skipNuvem) {
+        db.ref('ricpower_dados').set({
+            contasPagar: contasPagar,
+            contasReceber: contasReceber,
+            estoque: estoque
+        }).catch(err => console.error("Erro ao enviar para o Firebase:", err));
+    }
+}
+
+// ESCUTA EM TEMPO REAL (SINCRONIZAÇÃO PC <-> TELEMÓVEL)
+function escutarSincronizacaoNuvem() {
+    if (db) {
+        db.ref('ricpower_dados').on('value', (snapshot) => {
+            const dadosNuvem = snapshot.val();
+            if (dadosNuvem) {
+                contasPagar = dadosNuvem.contasPagar || [];
+                contasReceber = dadosNuvem.contasReceber || [];
+                estoque = dadosNuvem.estoque || [];
+
+                salvarDadosLocal(true); // Atualiza localStorage sem duplicar envio
+                renderizarTudo();
+            } else {
+                // Se a nuvem estiver vazia na primeira execução, envia os dados locais
+                salvarDadosLocal();
+            }
+        });
+    }
 }
 
 function formatarMoeda(valor) {
@@ -48,9 +94,9 @@ function formatarDataBR(dataIso) {
     return `${partes[2]}/${partes[1]}/${partes[0]}`;
 }
 
-/* 1. LOGIN & SESSÃO */
+/* AUTENTICAÇÃO E SESSÃO */
 function realizarLogin(event) {
-    event.preventDefault();
+    if (event) event.preventDefault();
     const email = document.getElementById('loginEmail').value.trim();
     const senha = document.getElementById('loginSenha').value.trim();
     const alertBox = document.getElementById('loginAlert');
@@ -61,7 +107,7 @@ function realizarLogin(event) {
         iniciarAplicacao();
     } else {
         alertBox.className = 'login-alert error';
-        alertBox.innerText = 'E-mail ou senha incorretos! Utilize as credenciais fixas.';
+        alertBox.innerText = 'E-mail ou senha incorretos!';
         alertBox.style.display = 'block';
     }
 }
@@ -91,10 +137,11 @@ function iniciarAplicacao() {
     document.getElementById('loginScreen').style.display = 'none';
     document.getElementById('appScreen').style.display = 'flex';
     document.getElementById('userEmailDisplay').innerText = localStorage.getItem('ricpower_logged_user') || 'admin@richard.com';
+    escutarSincronizacaoNuvem();
     renderizarTudo();
 }
 
-/* 2. NAVEGAÇÃO DE ABAS */
+/* NAVEGAÇÃO DE ABAS */
 function showTab(tabId, navElement) {
     document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
     document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
@@ -104,13 +151,6 @@ function showTab(tabId, navElement) {
 
     if (navElement) {
         navElement.classList.add('active');
-    } else {
-        const links = document.querySelectorAll('.nav-link');
-        links.forEach(l => {
-            if (l.getAttribute('onclick') && l.getAttribute('onclick').includes(tabId)) {
-                l.classList.add('active');
-            }
-        });
     }
 
     const titles = {
@@ -122,11 +162,10 @@ function showTab(tabId, navElement) {
         'extensao': 'Extensão Chrome & Integrações'
     };
     document.getElementById('pageTitle').innerText = titles[tabId] || 'RICPOWER';
-    
     renderizarTudo();
 }
 
-/* 3. FILTRO DE PERÍODO */
+/* FILTROS DE PERÍODO */
 function toggleDateFilter() {
     document.getElementById('dateFilterDropdown').classList.toggle('show');
 }
@@ -150,10 +189,6 @@ function aplicarFiltroPersonalizado() {
 
     if (!dtInicio || !dtFim) {
         alert("Por favor, selecione as datas de início e fim.");
-        return;
-    }
-    if (dtInicio > dtFim) {
-        alert("A data inicial não pode ser maior que a data final.");
         return;
     }
 
@@ -210,7 +245,7 @@ function filtrarPorPeriodo(lista, campoData = 'vencimento') {
     });
 }
 
-/* 4. RENDERIZAÇÃO GERAL E DASHBOARD */
+/* RENDERIZAÇÃO E GRÁFICOS */
 function renderizarTudo() {
     renderizarDashboard();
     renderizarContasPagar();
@@ -335,7 +370,7 @@ function renderizarGraficosSeguro(receberList, pagarList) {
     }
 }
 
-/* 5. TABELAS DE PAGAR E RECEBER */
+/* TABELAS E OPERAÇÕES */
 function renderizarContasPagar() {
     const tbody = document.getElementById('tableContasPagar');
     if (!tbody) return;
@@ -414,7 +449,6 @@ function renderizarContasReceber() {
     `).join('');
 }
 
-/* 6. SALVAR SAÍDA E ENTRADA E RESETAR FILTROS DE STATUS PARA "TODOS" */
 function salvarContaPagar(event) {
     if (event) event.preventDefault();
     const id = document.getElementById('pagId').value;
@@ -437,26 +471,12 @@ function salvarContaPagar(event) {
         contasPagar.push(conta);
     }
 
-    // Reseta o seletor de status para "todos" e limpa a busca por texto
     const filterStatusP = document.getElementById('filterStatusPagar');
     if (filterStatusP) filterStatusP.value = 'todos';
-
-    const searchP = document.getElementById('searchPagar');
-    if (searchP) searchP.value = '';
-
-    // Se a data for de outro mês, muda o filtro de período para 'Todos os Registros'
-    const dtItem = new Date(conta.vencimento + 'T00:00:00');
-    const agora = new Date();
-    if (filtroDataAtivo === 'Este Mês' && (dtItem.getFullYear() !== agora.getFullYear() || dtItem.getMonth() !== agora.getMonth())) {
-        filtroDataAtivo = 'Todos os Registros';
-        const txtEl = document.getElementById('currentPeriodText');
-        if (txtEl) txtEl.innerText = 'Todos os Registros';
-    }
 
     salvarDadosLocal();
     fecharModal('modalSaida');
     renderizarTudo();
-    alert('Saída (Conta a Pagar) salva com sucesso!');
 }
 
 function salvarContaReceber(event) {
@@ -481,26 +501,12 @@ function salvarContaReceber(event) {
         contasReceber.push(conta);
     }
 
-    // Reseta o seletor de status para "todos" e limpa a busca por texto ao guardar entrada
     const filterStatusR = document.getElementById('filterStatusReceber');
     if (filterStatusR) filterStatusR.value = 'todos';
-
-    const searchR = document.getElementById('searchReceber');
-    if (searchR) searchR.value = '';
-
-    // Se a data for de outro mês, muda o filtro de período para 'Todos os Registros'
-    const dtItem = new Date(conta.vencimento + 'T00:00:00');
-    const agora = new Date();
-    if (filtroDataAtivo === 'Este Mês' && (dtItem.getFullYear() !== agora.getFullYear() || dtItem.getMonth() !== agora.getMonth())) {
-        filtroDataAtivo = 'Todos os Registros';
-        const txtEl = document.getElementById('currentPeriodText');
-        if (txtEl) txtEl.innerText = 'Todos os Registros';
-    }
 
     salvarDadosLocal();
     fecharModal('modalEntrada');
     renderizarTudo();
-    alert('Entrada (Conta a Receber) salva com sucesso!');
 }
 
 function darBaixaPagar(id) {
@@ -573,7 +579,7 @@ function excluirReceber(id) {
     }
 }
 
-/* 7. CONTROLE DE ESTOQUE */
+/* CONTROLE DE ESTOQUE */
 function renderizarEstoque() {
     const tbody = document.getElementById('tableEstoque');
     if (!tbody) return;
@@ -601,7 +607,7 @@ function renderizarEstoque() {
     document.getElementById('stkTotalAlertas').innerText = totalCriticos;
 
     if (filtrados.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;">Nenum produto cadastrado no estoque.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;">Nenhum produto cadastrado no estoque.</td></tr>`;
         return;
     }
 
@@ -655,7 +661,6 @@ function salvarProduto(event) {
     salvarDadosLocal();
     fecharModal('modalProduto');
     renderizarTudo();
-    alert('Produto salvo com sucesso!');
 }
 
 function editarProduto(id) {
@@ -710,7 +715,7 @@ function salvarMovimentacaoEstoque(event) {
     }
 }
 
-/* 8. DEMONSTRATIVO DRE */
+/* DEMONSTRATIVO DRE */
 function renderizarDRE() {
     const elText = document.getElementById('drePeriodoText');
     if (elText) elText.innerText = filtroDataAtivo;
@@ -733,7 +738,7 @@ function renderizarDRE() {
     document.getElementById('dreMargemLiquida').innerText = `${margemLiquida}%`;
 }
 
-/* 9. EXTENSÃO CHROME & BACKUP */
+/* EXTENSÃO CHROME & BACKUP */
 function lancamentoRapidoExtensao() {
     const tipo = document.getElementById('extTipo').value;
     const pessoa = document.getElementById('extPessoa').value.trim();
@@ -834,7 +839,7 @@ function exportarCSV(tipo) {
     document.body.removeChild(link);
 }
 
-/* 10. HELPERS DE MODAIS COM PREENCHIMENTO DE DATA HOJE */
+/* MODAIS */
 function abrirModal(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) modal.style.display = 'flex';
