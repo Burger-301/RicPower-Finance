@@ -40,11 +40,15 @@
 
         /* LOGO */
         .logo-img {
-            max-height: 42px;
+            max-height: 58px;
             width: auto;
             max-width: 100%;
             object-fit: contain;
             display: block;
+        }
+
+        .login-card .logo-img {
+            max-height: 80px;
         }
 
         /* TELA DE LOGIN */
@@ -62,7 +66,7 @@
 
         /* SIDEBAR */
         .sidebar { width: 260px; background-color: var(--primary-color); color: white; display: flex; flex-direction: column; transition: all 0.3s; z-index: 100; }
-        .sidebar .logo { padding: 20px 15px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; justify-content: center; min-height: 75px; }
+        .sidebar .logo { padding: 20px 15px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; justify-content: center; min-height: 85px; }
         .nav-link { padding: 16px 25px; color: #b8c7ce; text-decoration: none; display: flex; align-items: center; gap: 15px; transition: 0.2s; font-size: 15px; font-weight: 500; cursor: pointer; }
         .nav-link:hover, .nav-link.active { background-color: var(--secondary-color); color: var(--accent-color); border-left: 4px solid var(--accent-color); }
         .sidebar-footer { margin-top: auto; padding: 20px; border-top: 1px solid rgba(255,255,255,0.05); font-size: 12px; color: #888; text-align: center; }
@@ -163,7 +167,7 @@
     <div id="login-screen">
         <div class="login-card">
             <div class="logo">
-                <img src="logo.png" alt="RICPOWER" class="logo-img" onerror="this.onerror=null; this.src='https://placehold.co/220x50/111111/FFD500?text=RICPOWER';">
+                <img src="logo.png" alt="RICPOWER" class="logo-img" onerror="this.onerror=null; this.src='https://placehold.co/300x80/111111/FFD500?text=RICPOWER';">
             </div>
             <p style="margin-bottom: 20px; font-size: 14px; color: #aaa;">Painel Restrito de Gestão</p>
             <form onsubmit="realizarLogin(event)">
@@ -185,7 +189,7 @@
     <!-- SIDEBAR DE NAVEGAÇÃO -->
     <div class="sidebar">
         <div class="logo">
-            <img src="logo.png" alt="RICPOWER" class="logo-img" onerror="this.onerror=null; this.src='https://placehold.co/200x45/111111/FFD500?text=RICPOWER';">
+            <img src="logo.png" alt="RICPOWER" class="logo-img" onerror="this.onerror=null; this.src='https://placehold.co/240x60/111111/FFD500?text=RICPOWER';">
         </div>
         <div class="nav-link active" onclick="trocarAba('dashboard', this)"><i class="fas fa-chart-line"></i> Dashboard</div>
         <div class="nav-link" onclick="trocarAba('contas-pagar', this)"><i class="fas fa-arrow-down"></i> Contas a Pagar</div>
