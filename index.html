@@ -189,7 +189,7 @@
     <!-- SIDEBAR DE NAVEGAÇÃO -->
     <div class="sidebar">
         <div class="logo">
-            <img src="logo.png" alt="RICPOWER" class="logo-img" onerror="this.onerror=null; this.src='https://placehold.co/240x60/111111/FFD500?text=RICPOWER';">
+            <img src="logo2.png" alt="RICPOWER" class="logo-img" onerror="this.onerror=null; this.src='https://placehold.co/240x60/111111/FFD500?text=RICPOWER';">
         </div>
         <div class="nav-link active" onclick="trocarAba('dashboard', this)"><i class="fas fa-chart-line"></i> Dashboard</div>
         <div class="nav-link" onclick="trocarAba('contas-pagar', this)"><i class="fas fa-arrow-down"></i> Contas a Pagar</div>
@@ -613,6 +613,11 @@
         let dbReceber = [];
         let dbEstoque = [];
 
+        // FILTRAGEM GLOBAL DE DATAS
+        let filtroPeriodoGlobal = 'todos';
+        let dtInicioCustom = null;
+        let dtFimCustom = null;
+
         let chartFluxo, chartCat;
 
         // INICIALIZAÇÃO DE DADOS AO CARREGAR A PÁGINA
@@ -679,6 +684,29 @@
         // FORMATADOR DE MOEDA
         const fmt = (v) => Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
+        // AUXILIAR DE FILTRAGEM POR DATA
+        function filtrarPorPeriodo(item) {
+            if (!item || !item.venc) return true;
+            if (filtroPeriodoGlobal === 'todos') return true;
+
+            const itemDate = new Date(item.venc + 'T00:00:00');
+            const hoje = new Date();
+
+            if (filtroPeriodoGlobal === 'este-mes') {
+                return itemDate.getMonth() === hoje.getMonth() && itemDate.getFullYear() === hoje.getFullYear();
+            } else if (filtroPeriodoGlobal === 'mes-passado') {
+                const mesPassado = new Date(hoje.getFullYear(), hoje.getMonth() - 1, 1);
+                return itemDate.getMonth() === mesPassado.getMonth() && itemDate.getFullYear() === mesPassado.getFullYear();
+            } else if (filtroPeriodoGlobal === 'este-ano') {
+                return itemDate.getFullYear() === hoje.getFullYear();
+            } else if (filtroPeriodoGlobal === 'custom' && dtInicioCustom && dtFimCustom) {
+                const ini = new Date(dtInicioCustom + 'T00:00:00');
+                const fim = new Date(dtFimCustom + 'T23:59:59');
+                return itemDate >= ini && itemDate <= fim;
+            }
+            return true;
+        }
+
         // CARREGAR E RENDERIZAR MÉTRICAS
         function carregarDados() {
             if (!isFirebaseConnected) {
@@ -687,11 +715,15 @@
                 localStorage.setItem('ric_estoque', JSON.stringify(dbEstoque));
             }
 
-            let realIn = dbReceber.filter(x => x.status === 'PAGO').reduce((a,b) => a + Number(b.valor), 0);
-            let pendingIn = dbReceber.filter(x => x.status !== 'PAGO').reduce((a,b) => a + Number(b.valor), 0);
+            // Aplica filtro de período global nos dados
+            const pagarFiltrado = dbPagar.filter(filtrarPorPeriodo);
+            const receberFiltrado = dbReceber.filter(filtrarPorPeriodo);
+
+            let realIn = receberFiltrado.filter(x => x.status === 'PAGO').reduce((a,b) => a + Number(b.valor), 0);
+            let pendingIn = receberFiltrado.filter(x => x.status !== 'PAGO').reduce((a,b) => a + Number(b.valor), 0);
             
-            let realOut = dbPagar.filter(x => x.status === 'PAGO').reduce((a,b) => a + Number(b.valor), 0);
-            let pendingOut = dbPagar.filter(x => x.status !== 'PAGO').reduce((a,b) => a + Number(b.valor), 0);
+            let realOut = pagarFiltrado.filter(x => x.status === 'PAGO').reduce((a,b) => a + Number(b.valor), 0);
+            let pendingOut = pagarFiltrado.filter(x => x.status !== 'PAGO').reduce((a,b) => a + Number(b.valor), 0);
 
             let balReal = realIn - realOut;
             let balProj = (realIn + pendingIn) - (realOut + pendingOut);
@@ -705,9 +737,14 @@
             document.getElementById('kpiBalanceProjected').innerText = fmt(balProj);
             document.getElementById('kpiStockTotal').innerText = fmt(stockTot);
 
-            atualizarDREDual();
-            renderTabelas();
-            renderGraficos(realIn, realOut);
+            // Totais dinâmicos para Gráfico de Categorias
+            let catPessoal = pagarFiltrado.filter(x => x.cc === 'PESSOAL').reduce((a,b) => a + Number(b.valor), 0);
+            let catAdmin = pagarFiltrado.filter(x => x.cc === 'ADMINISTRATIVO').reduce((a,b) => a + Number(b.valor), 0);
+            let catPecas = pagarFiltrado.filter(x => x.cc === 'PEÇAS').reduce((a,b) => a + Number(b.valor), 0);
+
+            atualizarDREDual(pagarFiltrado, receberFiltrado);
+            renderTabelas(pagarFiltrado, receberFiltrado);
+            renderGraficos(realIn, realOut, catPessoal, catAdmin, catPecas);
 
             // Verificação automática de despesas fixas do mês
             if (!window.fixasVerificadasAuto) {
@@ -717,21 +754,21 @@
         }
 
         // CÁLCULO DRE DUAL
-        function atualizarDREDual() {
-            let recReal = dbReceber.filter(x => x.status === 'PAGO').reduce((a,b) => a + Number(b.valor), 0);
-            let recPend = dbReceber.filter(x => x.status !== 'PAGO').reduce((a,b) => a + Number(b.valor), 0);
+        function atualizarDREDual(pagarList = dbPagar, receberList = dbReceber) {
+            let recReal = receberList.filter(x => x.status === 'PAGO').reduce((a,b) => a + Number(b.valor), 0);
+            let recPend = receberList.filter(x => x.status !== 'PAGO').reduce((a,b) => a + Number(b.valor), 0);
             let recProj = recReal + recPend;
 
-            let custoReal = dbPagar.filter(x => x.status === 'PAGO' && x.cc === 'PEÇAS').reduce((a,b) => a + Number(b.valor), 0);
-            let custoPend = dbPagar.filter(x => x.status !== 'PAGO' && x.cc === 'PEÇAS').reduce((a,b) => a + Number(b.valor), 0);
+            let custoReal = pagarList.filter(x => x.status === 'PAGO' && x.cc === 'PEÇAS').reduce((a,b) => a + Number(b.valor), 0);
+            let custoPend = pagarList.filter(x => x.status !== 'PAGO' && x.cc === 'PEÇAS').reduce((a,b) => a + Number(b.valor), 0);
             let custoProj = custoReal + custoPend;
 
-            let despFixaReal = dbPagar.filter(x => x.status === 'PAGO' && x.cc === 'ADMINISTRATIVO').reduce((a,b) => a + Number(b.valor), 0);
-            let despFixaPend = dbPagar.filter(x => x.status !== 'PAGO' && x.cc === 'ADMINISTRATIVO').reduce((a,b) => a + Number(b.valor), 0);
+            let despFixaReal = pagarList.filter(x => x.status === 'PAGO' && x.cc === 'ADMINISTRATIVO').reduce((a,b) => a + Number(b.valor), 0);
+            let despFixaPend = pagarList.filter(x => x.status !== 'PAGO' && x.cc === 'ADMINISTRATIVO').reduce((a,b) => a + Number(b.valor), 0);
             let despFixaProj = despFixaReal + despFixaPend;
 
-            let despPessReal = dbPagar.filter(x => x.status === 'PAGO' && x.cc === 'PESSOAL').reduce((a,b) => a + Number(b.valor), 0);
-            let despPessPend = dbPagar.filter(x => x.status !== 'PAGO' && x.cc === 'PESSOAL').reduce((a,b) => a + Number(b.valor), 0);
+            let despPessReal = pagarList.filter(x => x.status === 'PAGO' && x.cc === 'PESSOAL').reduce((a,b) => a + Number(b.valor), 0);
+            let despPessPend = pagarList.filter(x => x.status !== 'PAGO' && x.cc === 'PESSOAL').reduce((a,b) => a + Number(b.valor), 0);
             let despPessProj = despPessReal + despPessPend;
 
             let lucroBrutoReal = recReal - custoReal;
@@ -786,11 +823,11 @@
         }
 
         // RENDERIZAÇÃO DAS TABELAS
-        function renderTabelas() {
-            // Dashboard Vencimentos
+        function renderTabelas(pagarList = dbPagar, receberList = dbReceber) {
+            // Dashboard Vencimentos (Ordenados por Data de Vencimento)
             let tbVenc = document.getElementById('tbProximosVencimentos');
             tbVenc.innerHTML = '';
-            [...dbPagar, ...dbReceber].slice(0, 5).forEach(item => {
+            [...pagarList, ...receberList].sort((a,b) => new Date(a.venc) - new Date(b.venc)).slice(0, 5).forEach(item => {
                 let isPagar = item.fornecedor !== undefined;
                 tbVenc.innerHTML += `
                     <tr>
@@ -812,7 +849,7 @@
             let tbP = document.getElementById('tbPagar');
             tbP.innerHTML = '';
 
-            dbPagar.filter(item => {
+            pagarList.filter(item => {
                 let matchBusca = (item.fornecedor || '').toLowerCase().includes(buscaP) || (item.desc || '').toLowerCase().includes(buscaP);
                 let matchStatus = statusP === 'TODOS' || item.status === statusP;
                 let matchCC = ccP === 'TODOS' || item.cc === ccP;
@@ -848,7 +885,7 @@
             let tbR = document.getElementById('tbReceber');
             tbR.innerHTML = '';
 
-            dbReceber.filter(item => {
+            receberList.filter(item => {
                 let matchBusca = (item.cliente || '').toLowerCase().includes(buscaR) || (item.desc || '').toLowerCase().includes(buscaR);
                 let matchStatus = statusR === 'TODOS' || item.status === statusR;
                 let matchCC = ccR === 'TODOS' || item.cc === ccR;
@@ -911,8 +948,8 @@
             });
         }
 
-        // GRÁFICOS
-        function renderGraficos(realIn, realOut) {
+        // GRÁFICOS DINÂMICOS
+        function renderGraficos(realIn, realOut, catPessoal = 0, catAdmin = 0, catPecas = 0) {
             const ctxFluxo = document.getElementById('chartFluxoCaixa').getContext('2d');
             if (chartFluxo) chartFluxo.destroy();
             chartFluxo = new Chart(ctxFluxo, {
@@ -934,7 +971,10 @@
                 type: 'doughnut',
                 data: {
                     labels: ['Pessoal', 'Administrativo', 'Peças'],
-                    datasets: [{ data: [30, 40, 30], backgroundColor: ['#FFD500', '#111111', '#e74c3c'] }]
+                    datasets: [{ 
+                        data: [catPessoal, catAdmin, catPecas], 
+                        backgroundColor: ['#FFD500', '#111111', '#e74c3c'] 
+                    }]
                 },
                 options: { responsive: true }
             });
@@ -1491,20 +1531,34 @@
         function toggleDateFilter() { document.getElementById('dateFilterDropdown').classList.toggle('show'); }
 
         function selecionarFiltroData(tipo, txt) {
+            filtroPeriodoGlobal = tipo;
             document.getElementById('currentPeriodText').innerText = txt;
             document.getElementById('dateFilterDropdown').classList.remove('show');
+            carregarDados();
         }
+
         function aplicarDataPersonalizada() {
             let i = document.getElementById('dtInicio').value;
             let f = document.getElementById('dtFim').value;
             if(i && f) {
+                filtroPeriodoGlobal = 'custom';
+                dtInicioCustom = i;
+                dtFimCustom = f;
                 document.getElementById('currentPeriodText').innerText = `${i} até ${f}`;
                 document.getElementById('dateFilterDropdown').classList.remove('show');
+                carregarDados();
             }
         }
+
         function limparFiltroData() {
+            filtroPeriodoGlobal = 'todos';
+            dtInicioCustom = null;
+            dtFimCustom = null;
+            document.getElementById('dtInicio').value = '';
+            document.getElementById('dtFim').value = '';
             document.getElementById('currentPeriodText').innerText = 'Todos os Registros';
             document.getElementById('dateFilterDropdown').classList.remove('show');
+            carregarDados();
         }
     </script>
 </body>
