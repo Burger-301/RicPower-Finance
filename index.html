@@ -12,6 +12,9 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 
+    <!-- SheetJS (Processamento de Planilhas Excel .xlsx) -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
     <!-- SDKs do Firebase (Versão Compat para Nuvem Real-time) -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
@@ -35,6 +38,15 @@
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { background-color: var(--bg-color); color: var(--text-color); min-height: 100vh; display: flex; }
 
+        /* LOGO */
+        .logo-img {
+            max-height: 42px;
+            width: auto;
+            max-width: 100%;
+            object-fit: contain;
+            display: block;
+        }
+
         /* TELA DE LOGIN */
         #login-screen {
             position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
@@ -46,13 +58,11 @@
             padding: 40px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
             border-top: 5px solid var(--accent-color); color: white; text-align: center;
         }
-        .login-card .logo { font-size: 28px; font-weight: bold; margin-bottom: 25px; color: white; display: flex; align-items: center; justify-content: center; gap: 10px; }
-        .login-card .logo i { color: var(--accent-color); }
+        .login-card .logo { margin-bottom: 25px; display: flex; align-items: center; justify-content: center; }
 
         /* SIDEBAR */
         .sidebar { width: 260px; background-color: var(--primary-color); color: white; display: flex; flex-direction: column; transition: all 0.3s; z-index: 100; }
-        .sidebar .logo { font-size: 24px; font-weight: bold; padding: 25px 20px; text-align: center; color: white; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: center; gap: 10px; }
-        .sidebar .logo i { color: var(--accent-color); }
+        .sidebar .logo { padding: 20px 15px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; justify-content: center; min-height: 75px; }
         .nav-link { padding: 16px 25px; color: #b8c7ce; text-decoration: none; display: flex; align-items: center; gap: 15px; transition: 0.2s; font-size: 15px; font-weight: 500; cursor: pointer; }
         .nav-link:hover, .nav-link.active { background-color: var(--secondary-color); color: var(--accent-color); border-left: 4px solid var(--accent-color); }
         .sidebar-footer { margin-top: auto; padding: 20px; border-top: 1px solid rgba(255,255,255,0.05); font-size: 12px; color: #888; text-align: center; }
@@ -128,6 +138,8 @@
         .btn-primary { background-color: var(--accent-color); color: var(--primary-color); }
         .btn-secondary { background-color: var(--primary-color); color: white; }
         .btn-warning { background-color: var(--warning-color); color: white; }
+        .btn-excel { background-color: #107c41; color: white; }
+        .btn-excel:hover { background-color: #0b5c30; }
         .btn-sm { padding: 5px 10px; font-size: 11px; }
 
         .action-btns { display: flex; gap: 5px; flex-wrap: wrap; }
@@ -150,7 +162,9 @@
     <!-- TELA DE LOGIN -->
     <div id="login-screen">
         <div class="login-card">
-            <div class="logo"><i class="fas fa-bolt"></i> RICPOWER</div>
+            <div class="logo">
+                <img src="logo.png" alt="RICPOWER" class="logo-img" onerror="this.onerror=null; this.src='https://placehold.co/220x50/111111/FFD500?text=RICPOWER';">
+            </div>
             <p style="margin-bottom: 20px; font-size: 14px; color: #aaa;">Painel Restrito de Gestão</p>
             <form onsubmit="realizarLogin(event)">
                 <div style="margin-bottom: 15px; text-align: left;">
@@ -170,7 +184,9 @@
 
     <!-- SIDEBAR DE NAVEGAÇÃO -->
     <div class="sidebar">
-        <div class="logo"><i class="fas fa-bolt"></i> RICPOWER</div>
+        <div class="logo">
+            <img src="logo.png" alt="RICPOWER" class="logo-img" onerror="this.onerror=null; this.src='https://placehold.co/200x45/111111/FFD500?text=RICPOWER';">
+        </div>
         <div class="nav-link active" onclick="trocarAba('dashboard', this)"><i class="fas fa-chart-line"></i> Dashboard</div>
         <div class="nav-link" onclick="trocarAba('contas-pagar', this)"><i class="fas fa-arrow-down"></i> Contas a Pagar</div>
         <div class="nav-link" onclick="trocarAba('contas-receber', this)"><i class="fas fa-arrow-up"></i> Contas a Receber</div>
@@ -447,20 +463,26 @@
         <!-- TAB 6: BACKUP & EXTENSÃO -->
         <div id="tab-extensao" class="tab-content">
             <div class="panel">
-                <div class="panel-header"><h3 class="panel-title"><i class="fas fa-database"></i> Backup & Restauração de Dados</h3></div>
+                <div class="panel-header"><h3 class="panel-title"><i class="fas fa-database"></i> Backup & Importação de Dados</h3></div>
                 <p style="margin-bottom: 20px; color: #666; font-size: 14px;">
-                    Baixe uma cópia de segurança de todos os seus lançamentos e estoque ou restaure um arquivo salvo anteriormente.
+                    Importe sua planilha do Excel com Contas a Pagar e Contas a Receber, baixe uma cópia de segurança completa ou restaure arquivos JSON salvos.
                 </p>
                 <div style="display: flex; gap: 15px; flex-wrap: wrap; margin-bottom: 25px;">
+                    <!-- BOTAO IMPORTAR EXCEL (.XLSX) - METODO 2 -->
+                    <label class="btn btn-excel" style="cursor: pointer; font-size: 13px; padding: 10px 18px;">
+                        <i class="fas fa-file-excel" style="font-size: 16px;"></i> Importar Planilha Excel (.xlsx)
+                        <input type="file" id="importExcelFile" accept=".xlsx, .xls" onchange="importarPlanilhaExcel(event)" style="display: none;">
+                    </label>
+
                     <button class="btn btn-primary" onclick="exportarBackupJSON()"><i class="fas fa-download"></i> Baixar Backup Completo (JSON)</button>
                     <label class="btn btn-success" style="cursor: pointer;">
-                        <i class="fas fa-upload"></i> Restaurar / Importar Backup (JSON)
+                        <i class="fas fa-upload"></i> Restaurar Backup (JSON)
                         <input type="file" id="importFile" accept=".json" onchange="importarBackupJSON(event)" style="display: none;">
                     </label>
                 </div>
                 <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                    <button class="btn btn-secondary" onclick="exportarCSV('pagar')"><i class="fas fa-file-excel"></i> Exportar Contas a Pagar (CSV)</button>
-                    <button class="btn btn-secondary" onclick="exportarCSV('receber')"><i class="fas fa-file-excel"></i> Exportar Contas a Receber (CSV)</button>
+                    <button class="btn btn-secondary" onclick="exportarCSV('pagar')"><i class="fas fa-file-csv"></i> Exportar Contas a Pagar (CSV)</button>
+                    <button class="btn btn-secondary" onclick="exportarCSV('receber')"><i class="fas fa-file-csv"></i> Exportar Contas a Receber (CSV)</button>
                 </div>
             </div>
 
@@ -555,7 +577,7 @@
         </div>
     </div>
 
-    <!-- SCRIPT DE INTELIGÊNCIA BANCÁRIA, FIREBASE E DRE DUAL -->
+    <!-- SCRIPT DE LÓGICA, FIREBASE, DRE DUAL E IMPORTAÇÃO EXCEL -->
     <script>
         // CONFIGURAÇÃO REAL DO PROJETO FIREBASE (RICPOWER-FINANCE-4312B)
         const firebaseConfig = {
@@ -683,7 +705,7 @@
             renderTabelas();
             renderGraficos(realIn, realOut);
 
-            // Verificação e geração automática de despesas fixas do mês (sem alertas ao carregar)
+            // Verificação automática de despesas fixas do mês
             if (!window.fixasVerificadasAuto) {
                 window.fixasVerificadasAuto = true;
                 gerarDespesasFixasMesAtual(true);
@@ -1027,13 +1049,12 @@
             }
         }
 
-        // AUTOMATIZAÇÃO DE DESPESAS FIXAS (FILTRA POR CAMPO 'FIXA' E VERIFICA DUPLICIDADE PELA DESCRIÇÃO)
+        // AUTOMATIZAÇÃO DE DESPESAS FIXAS
         function gerarDespesasFixasMesAtual(silencioso = false) {
             const hoje = new Date();
             const anoAtual = hoje.getFullYear();
             const mesAtual = String(hoje.getMonth() + 1).padStart(2, '0');
 
-            // Filtra as contas que foram marcadas com "Despesa Fixa = Sim" no cadastro
             const contasFixas = dbPagar.filter(item => item.fixa === true || item.fixa === 'SIM');
 
             if (contasFixas.length === 0) {
@@ -1047,7 +1068,6 @@
                 const diaVenc = (conta.venc && conta.venc.split('-')[2]) ? conta.venc.split('-')[2] : '10';
                 const novoVencimento = `${anoAtual}-${mesAtual}-${diaVenc}`;
 
-                // Verifica se uma conta com a mesma DESCRIÇÃO já foi lançada para este vencimento no mês
                 const jaExiste = dbPagar.some(x => 
                     (x.desc || '').toLowerCase().trim() === (conta.desc || '').toLowerCase().trim() && 
                     x.venc === novoVencimento
@@ -1081,7 +1101,223 @@
             }
         }
 
-        // CONTROLADORES DE MODAL (COM LIMPEZA COMPLETA DOS CAMPOS AO ABRIR NOVO)
+        // IMPORTAÇÃO DIRETA DE PLANILHA EXCEL (.XLSX) - MÉTODO 2
+        function importarPlanilhaExcel(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                try {
+                    const data = new Uint8Array(evt.target.result);
+                    const workbook = XLSX.read(data, { type: 'array', cellDates: true });
+
+                    let countPagar = 0;
+                    let countReceber = 0;
+
+                    // Função auxiliar para padronizar e formatar data em YYYY-MM-DD
+                    function parseExcelDate(val) {
+                        if (!val) return new Date().toISOString().slice(0, 10);
+                        if (val instanceof Date && !isNaN(val.getTime())) {
+                            const y = val.getFullYear();
+                            const m = String(val.getMonth() + 1).padStart(2, '0');
+                            const d = String(val.getDate()).padStart(2, '0');
+                            return `${y}-${m}-${d}`;
+                        }
+                        if (typeof val === 'number') {
+                            const dateObj = XLSX.SSF.parse_date_code(val);
+                            if (dateObj) {
+                                const y = dateObj.y;
+                                const m = String(dateObj.m).padStart(2, '0');
+                                const d = String(dateObj.d).padStart(2, '0');
+                                return `${y}-${m}-${d}`;
+                            }
+                        }
+                        if (typeof val === 'string') {
+                            val = val.trim();
+                            if (val.includes('/')) {
+                                const parts = val.split('/');
+                                if (parts.length === 3) {
+                                    if (parts[0].length === 4) return `${parts[0]}-${parts[1].padStart(2,'0')}-${parts[2].padStart(2,'0')}`;
+                                    return `${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`;
+                                }
+                            }
+                            if (val.includes('-')) {
+                                const parts = val.split('-');
+                                if (parts.length === 3 && parts[0].length === 4) return val;
+                            }
+                        }
+                        return new Date().toISOString().slice(0, 10);
+                    }
+
+                    // 1. Processar Aba "CONTAS A PAGAR"
+                    const sheetPagarName = workbook.SheetNames.find(s => s.toUpperCase().includes('PAGAR'));
+                    if (sheetPagarName) {
+                        const sheetPagar = workbook.Sheets[sheetPagarName];
+                        const rows = XLSX.utils.sheet_to_json(sheetPagar, { header: 1, raw: false, dateNF: 'yyyy-mm-dd' });
+
+                        let headerIdx = -1;
+                        for (let i = 0; i < Math.min(10, rows.length); i++) {
+                            const rStr = (rows[i] || []).map(c => String(c).toUpperCase()).join(' ');
+                            if (rStr.includes('FORNECEDOR') || rStr.includes('VALOR') || rStr.includes('VENCIMENTO')) {
+                                headerIdx = i;
+                                break;
+                            }
+                        }
+
+                        if (headerIdx !== -1) {
+                            const headers = rows[headerIdx].map(h => String(h || '').trim().toUpperCase());
+                            
+                            const idxVenc = headers.findIndex(h => h.includes('VENCIMENTO') || h.includes('DATA'));
+                            const idxForn = headers.findIndex(h => h.includes('FORNECEDOR') || h.includes('EMPRESA') || h.includes('NOME'));
+                            const idxDesc = headers.findIndex(h => h.includes('DESCRIÇÃO') || h.includes('DESCRICAO'));
+                            const idxValor = headers.findIndex(h => h.includes('VALOR'));
+                            const idxStatus = headers.findIndex(h => h.includes('STATUS'));
+                            const idxCC = headers.findIndex(h => h.includes('CENTRO') || h.includes('CUSTO'));
+
+                            for (let i = headerIdx + 1; i < rows.length; i++) {
+                                const row = rows[i];
+                                if (!row || row.length === 0) continue;
+
+                                const rawValor = idxValor !== -1 ? row[idxValor] : null;
+                                if (rawValor === undefined || rawValor === null || rawValor === '') continue;
+
+                                let numValor = 0;
+                                if (typeof rawValor === 'number') {
+                                    numValor = rawValor;
+                                } else {
+                                    let strV = String(rawValor).replace('R$', '').replace(/\s/g, '');
+                                    if (strV.includes(',') && strV.includes('.')) strV = strV.replace(/\./g, '').replace(',', '.');
+                                    else if (strV.includes(',')) strV = strV.replace(',', '.');
+                                    numValor = parseFloat(strV) || 0;
+                                }
+
+                                if (numValor === 0) continue;
+
+                                const rawVenc = idxVenc !== -1 ? row[idxVenc] : '';
+                                const vencFormated = parseExcelDate(rawVenc);
+                                const fornecedor = idxForn !== -1 && row[idxForn] ? String(row[idxForn]).trim() : 'Fornecedor Importado';
+                                const desc = idxDesc !== -1 && row[idxDesc] ? String(row[idxDesc]).trim() : 'Lançamento Excel';
+                                const rawStatus = idxStatus !== -1 && row[idxStatus] ? String(row[idxStatus]).trim().toUpperCase() : 'PENDENTE';
+                                const status = rawStatus.includes('PAG') ? 'PAGO' : 'PENDENTE';
+                                const rawCC = idxCC !== -1 && row[idxCC] ? String(row[idxCC]).trim().toUpperCase() : 'ADMINISTRATIVO';
+
+                                let cc = 'ADMINISTRATIVO';
+                                if (rawCC.includes('PESS')) cc = 'PESSOAL';
+                                else if (rawCC.includes('PEÇ') || rawCC.includes('PEC')) cc = 'PEÇAS';
+                                else if (rawCC.includes('ADMIN')) cc = 'ADMINISTRATIVO';
+
+                                const newId = 'imp_p_' + Date.now() + '_' + Math.floor(Math.random() * 10000);
+                                const itemData = {
+                                    fornecedor: fornecedor,
+                                    desc: desc,
+                                    valor: numValor,
+                                    venc: vencFormated,
+                                    status: status,
+                                    cc: cc,
+                                    fixa: false
+                                };
+
+                                if (isFirebaseConnected && db) {
+                                    db.collection("pagar").doc(newId).set(itemData);
+                                } else {
+                                    dbPagar.push({ id: newId, ...itemData });
+                                }
+                                countPagar++;
+                            }
+                        }
+                    }
+
+                    // 2. Processar Aba "CONTAS A RECEBER"
+                    const sheetReceberName = workbook.SheetNames.find(s => s.toUpperCase().includes('RECEBER'));
+                    if (sheetReceberName) {
+                        const sheetReceber = workbook.Sheets[sheetReceberName];
+                        const rows = XLSX.utils.sheet_to_json(sheetReceber, { header: 1, raw: false, dateNF: 'yyyy-mm-dd' });
+
+                        let headerIdx = -1;
+                        for (let i = 0; i < Math.min(10, rows.length); i++) {
+                            const rStr = (rows[i] || []).map(c => String(c).toUpperCase()).join(' ');
+                            if (rStr.includes('CLIENTE') || rStr.includes('VALOR') || rStr.includes('VENCIMENTO')) {
+                                headerIdx = i;
+                                break;
+                            }
+                        }
+
+                        if (headerIdx !== -1) {
+                            const headers = rows[headerIdx].map(h => String(h || '').trim().toUpperCase());
+                            
+                            const idxVenc = headers.findIndex(h => h.includes('VENCIMENTO') || h.includes('DATA'));
+                            const idxCli = headers.findIndex(h => h.includes('CLIENTE') || h.includes('NOME'));
+                            const idxDesc = headers.findIndex(h => h.includes('DESCRIÇÃO') || h.includes('DESCRICAO'));
+                            const idxValor = headers.findIndex(h => h.includes('VALOR'));
+                            const idxStatus = headers.findIndex(h => h.includes('STATUS'));
+                            const idxCC = headers.findIndex(h => h.includes('CENTRO') || h.includes('CUSTO'));
+
+                            for (let i = headerIdx + 1; i < rows.length; i++) {
+                                const row = rows[i];
+                                if (!row || row.length === 0) continue;
+
+                                const rawValor = idxValor !== -1 ? row[idxValor] : null;
+                                if (rawValor === undefined || rawValor === null || rawValor === '') continue;
+
+                                let numValor = 0;
+                                if (typeof rawValor === 'number') {
+                                    numValor = rawValor;
+                                } else {
+                                    let strV = String(rawValor).replace('R$', '').replace(/\s/g, '');
+                                    if (strV.includes(',') && strV.includes('.')) strV = strV.replace(/\./g, '').replace(',', '.');
+                                    else if (strV.includes(',')) strV = strV.replace(',', '.');
+                                    numValor = parseFloat(strV) || 0;
+                                }
+
+                                if (numValor === 0) continue;
+
+                                const rawVenc = idxVenc !== -1 ? row[idxVenc] : '';
+                                const vencFormated = parseExcelDate(rawVenc);
+                                const cliente = idxCli !== -1 && row[idxCli] ? String(row[idxCli]).trim() : 'Cliente Importado';
+                                const desc = idxDesc !== -1 && row[idxDesc] ? String(row[idxDesc]).trim() : 'Recebimento Excel';
+                                const rawStatus = idxStatus !== -1 && row[idxStatus] ? String(row[idxStatus]).trim().toUpperCase() : 'PENDENTE';
+                                const status = rawStatus.includes('PAG') || rawStatus.includes('RECEB') ? 'PAGO' : 'PENDENTE';
+                                const rawCC = idxCC !== -1 && row[idxCC] ? String(row[idxCC]).trim().toUpperCase() : 'SERVIÇOS';
+
+                                let cc = 'SERVIÇOS';
+                                if (rawCC.includes('VEND')) cc = 'VENDAS';
+                                else if (rawCC.includes('SERV')) cc = 'SERVIÇOS';
+
+                                const newId = 'imp_r_' + Date.now() + '_' + Math.floor(Math.random() * 10000);
+                                const itemData = {
+                                    cliente: cliente,
+                                    desc: desc,
+                                    valor: numValor,
+                                    venc: vencFormated,
+                                    status: status,
+                                    cc: cc
+                                };
+
+                                if (isFirebaseConnected && db) {
+                                    db.collection("receber").doc(newId).set(itemData);
+                                } else {
+                                    dbReceber.push({ id: newId, ...itemData });
+                                }
+                                countReceber++;
+                            }
+                        }
+                    }
+
+                    carregarDados();
+                    e.target.value = '';
+
+                    alert(`Importação da Planilha Excel concluída com sucesso!\n\n• Contas a Pagar importadas: ${countPagar}\n• Contas a Receber importadas: ${countReceber}`);
+
+                } catch (err) {
+                    console.error('Erro ao ler a planilha Excel:', err);
+                    alert('Erro ao processar o arquivo de planilha. Verifique se é um arquivo Excel (.xlsx ou .xls) válido.');
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        // CONTROLADORES DE MODAL
         function abrirModalPagar() { 
             document.getElementById('pagarId').value = ''; 
             document.getElementById('pagarFornecedor').value = '';
@@ -1189,7 +1425,7 @@
             fecharModal('modalMovimentar');
         }
 
-        // BACKUP E EXPORTAÇÃO
+        // BACKUP JSON E EXPORTAÇÃO CSV
         function exportarBackupJSON() {
             const backupData = { dbPagar, dbReceber, dbEstoque, exportDate: new Date().toISOString() };
             const jsonStr = JSON.stringify(backupData, null, 2);
@@ -1219,7 +1455,7 @@
                         dbEstoque.forEach(item => db.collection("estoque").doc(String(item.id)).set(item));
                     }
                     carregarDados();
-                    alert('Backup restaurado e sincronizado com sucesso!');
+                    alert('Backup JSON restaurado e sincronizado com sucesso!');
                 } catch (err) {
                     alert('Erro ao importar arquivo JSON de backup.');
                 }
@@ -1245,7 +1481,7 @@
             document.body.removeChild(link);
         }
 
-        // UTILS E FILTROS
+        // UTILS
         function abrirModal(id) { document.getElementById(id).style.display = 'flex'; }
         function fecharModal(id) { document.getElementById(id).style.display = 'none'; }
         function toggleDateFilter() { document.getElementById('dateFilterDropdown').classList.toggle('show'); }
